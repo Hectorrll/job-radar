@@ -26,7 +26,7 @@ def fetch_remoteok():
     jobs = []
     for j in data:
         if not isinstance(j, dict) or "position" not in j or "id" not in j:
-            continue  # salta el aviso legal / elementos raros
+            continue
         jobs.append({
             "id": f"remoteok-{j.get('id')}",
             "titulo": j.get("position", "") or "",
@@ -40,29 +40,29 @@ def fetch_remoteok():
 
 
 def fetch_getonbrd():
-    """Get on Board: fuerte en Latam/español. Formato JSON:API."""
-    url = "https://www.getonbrd.com/api/v0/search/jobs?query=&per_page=80&expand=[company]"
-    data = _get_json(url)
-    if not isinstance(data, dict) or "data" not in data:
-        return []
-    jobs = []
-    for j in data.get("data", []):
-        attrs = j.get("attributes", {}) or {}
-        empresa = ""
-        comp = (j.get("relationships", {}) or {}).get("company", {})
-        if isinstance(comp, dict):
-            empresa = ((comp.get("data", {}) or {}).get("attributes", {}) or {}).get("name", "")
-        paises = attrs.get("countries", []) or []
-        modalidad = attrs.get("remote_modality", "") or ""
-        jobs.append({
-            "id": f"getonbrd-{j.get('id')}",
-            "titulo": attrs.get("title", "") or "",
-            "empresa": empresa or "",
-            "ubicacion": f"{modalidad} {', '.join(paises)}".strip() or "Remoto",
-            "descripcion": (attrs.get("description_headline", "") or attrs.get("description", "") or "")[:1500],
-            "link": (j.get("links", {}) or {}).get("public_url", "") or "",
-            "fuente": "GetOnBrd",
-        })
+    """Get on Board: Latam/espanol. Se busca por los nichos de Hector (sin expand,
+    que causaba error 500). Junta y deduplica los resultados de varias busquedas."""
+    queries = ["automatizacion", "n8n", "soporte", "data", "asistente", "ai"]
+    jobs, vistos = [], set()
+    for q in queries:
+        data = _get_json(f"https://www.getonbrd.com/api/v0/search/jobs?query={q}&per_page=30")
+        if not isinstance(data, dict) or "data" not in data:
+            continue
+        for j in data.get("data", []):
+            jid = j.get("id")
+            if not jid or jid in vistos:
+                continue
+            vistos.add(jid)
+            attrs = j.get("attributes", {}) or {}
+            jobs.append({
+                "id": f"getonbrd-{jid}",
+                "titulo": attrs.get("title", "") or "",
+                "empresa": "",
+                "ubicacion": attrs.get("remote_modality", "") or "Remoto",
+                "descripcion": (attrs.get("description_headline", "") or attrs.get("description", "") or "")[:1500],
+                "link": (j.get("links", {}) or {}).get("public_url", "") or "",
+                "fuente": "GetOnBrd",
+            })
     return jobs
 
 

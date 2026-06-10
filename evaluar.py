@@ -1,5 +1,6 @@
 """Evalua una vacante con un modelo de IA de NVIDIA (gratis, OpenAI-compatible).
-Modelo: Qwen3.5 (el mejor del catalogo NVIDIA para espanol).
+Modelo: Llama 3.3 70B (rapido, sin "thinking", buen espanol) -> ideal para
+clasificar muchas vacantes sin timeouts.
 """
 import os
 import json
@@ -7,7 +8,7 @@ import requests
 
 NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-MODEL = "qwen/qwen3.5-122b-a10b"
+MODEL = "meta/llama-3.3-70b-instruct"
 
 with open("criterios.txt", encoding="utf-8") as f:
     CRITERIOS = f.read()
@@ -21,20 +22,19 @@ def evaluar_vacante(v):
         f"Empresa: {v['empresa']}\n"
         f"Ubicacion: {v['ubicacion']}\n"
         f"Fuente: {v['fuente']}\n"
-        f"Descripcion: {v['descripcion'][:1200]}"
+        f"Descripcion: {v['descripcion'][:900]}"
     )
     payload = {
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2,
-        "max_tokens": 250,
+        "temperature": 0.1,
+        "max_tokens": 120,
     }
     headers = {"Authorization": f"Bearer {NVIDIA_KEY}", "Accept": "application/json"}
     try:
-        r = requests.post(URL, headers=headers, json=payload, timeout=90)
+        r = requests.post(URL, headers=headers, json=payload, timeout=60)
         r.raise_for_status()
         content = r.json()["choices"][0]["message"]["content"].strip()
-        # Extrae el JSON aunque el modelo agregue texto/razonamiento alrededor.
         ini, fin = content.find("{"), content.rfind("}")
         if ini == -1 or fin == -1:
             return {"aceptar": False, "motivo": "respuesta sin JSON"}
