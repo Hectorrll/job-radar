@@ -53,6 +53,7 @@ def main():
 
     # 2) PRE-FILTRAR por keywords + DEDUP contra lo ya visto.
     nuevas = [v for v in todas if es_relevante(v) and v["id"] not in seen]
+    nuevas.sort(key=lambda v: 0 if v["fuente"] == "GetOnBrd" else 1)  # espanol/Latam primero
     print(f"# {len(nuevas)} nuevas relevantes (evaluare hasta {MAX_EVALUAR})")
     a_evaluar = nuevas[:MAX_EVALUAR]
 
@@ -62,6 +63,8 @@ def main():
         with ThreadPoolExecutor(max_workers=3) as ex:
             veredictos = list(ex.map(evaluar.evaluar_vacante, a_evaluar))
         for v, ver in zip(a_evaluar, veredictos):
+            estado = "ACEPTA" if ver["aceptar"] else "descarta"
+            print(f"# [{estado}] {v['fuente']}: {v['titulo'][:45]} -> {ver['motivo'][:70]}")
             seen.add(v["id"])  # marcar como visto (se haya aceptado o no)
             if ver["aceptar"]:
                 aceptadas.append((v, ver))
