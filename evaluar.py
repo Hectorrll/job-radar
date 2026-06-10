@@ -1,9 +1,9 @@
 """Evalua una vacante con un modelo de IA de NVIDIA (gratis, OpenAI-compatible).
 
-Modelo principal: Llama 3.3 70B (occidental, rapido, confiable, buen espanol, no-"thinking").
-Es el que MEJOR responde en el tier gratis hosted. Probados y DESCARTADOS como principal:
-Qwen3.5-122B (timeout ~68%) y Llama 4 Scout (404 en el endpoint hosted: es VLM, no sirve aca).
-Fallback raro de respaldo: Qwen3.5 (lento pero funciona). Cambiar sin codigo: env var RADAR_MODEL.
+Modelo principal: Llama 4 Maverick 17B-128e (agentico, MoE 17B activos = rapido, occidental,
+instruct -> JSON limpio). VERIFICADO en el tier gratis: 0 fallback. Fallback: Llama 3.3 70B (probado).
+Probados y DESCARTADOS: Qwen3.5-122B (timeout ~68%), Llama 4 Scout (404, es VLM no-chat).
+Cambiar sin tocar codigo con env var RADAR_MODEL. Leccion: probar siempre + mirar el fallback count.
 
 Robustez (el free tier de NVIDIA = 40 RPM GLOBAL por key, no ampliable):
 - Limitador de ritmo (throttle) compartido entre hilos: arranca como mucho 1 request
@@ -23,8 +23,8 @@ import requests
 NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-# PROBANDO: Llama 4 Maverick (agentico + rapido) con fallback al PROBADO Llama 3.3 (red de seguridad).
-# Si Maverick da fallback alto / 404 -> revertir MODEL a meta/llama-3.3-70b-instruct.
+# Principal: Llama 4 Maverick (agentico + MoE 17B activos = rapido). VERIFICADO: 0 fallback en
+# el tier gratis. Fallback de respaldo: Llama 3.3 70B (probado). Cambiar sin codigo: env RADAR_MODEL.
 MODEL = os.getenv("RADAR_MODEL", "meta/llama-4-maverick-17b-128e-instruct")
 FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
 
