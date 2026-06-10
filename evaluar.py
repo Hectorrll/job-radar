@@ -1,9 +1,11 @@
 """Evalua una vacante con un modelo de IA de NVIDIA (gratis, OpenAI-compatible).
 
-Modelo principal: Llama 4 Maverick 17B-128e (agentico, MoE 17B activos = rapido, occidental,
-instruct -> JSON limpio). VERIFICADO en el tier gratis: 0 fallback. Fallback: Llama 3.3 70B (probado).
-Probados y DESCARTADOS: Qwen3.5-122B (timeout ~68%), Llama 4 Scout (404, es VLM no-chat).
-Cambiar sin tocar codigo con env var RADAR_MODEL. Leccion: probar siempre + mirar el fallback count.
+Modelo principal: Kimi K2.6 (moonshotai/kimi-k2.6) -- GANADOR del eval golden-set de 10 vacantes:
+10/10 aciertos, 10/10 JSON, el razonamiento mas profundo y contextual de todos, Y rapido (~2.4s).
+Fallback occidental: Llama 4 Maverick (9/10, rapido). En el eval, DeepSeek-V4-Pro y MiniMax-M2.7
+tambien lograron 10/10 pero mas lentos (8.8s / 11.1s); Qwen=timeout68%, Scout=404 (descartados).
+Cambiar sin tocar codigo con env var RADAR_MODEL. Leccion: medir CALIDAD con golden set + mirar fallback.
+Nota compliance: Kimi es chino, OK para el radar (vacantes PUBLICAS, sin PII); para PII usar occidental.
 
 Robustez (el free tier de NVIDIA = 40 RPM GLOBAL por key, no ampliable):
 - Limitador de ritmo (throttle) compartido entre hilos: arranca como mucho 1 request
@@ -23,13 +25,13 @@ import requests
 NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-# Principal: Llama 4 Maverick (agentico + MoE 17B activos = rapido). VERIFICADO: 0 fallback en
-# el tier gratis. Fallback de respaldo: Llama 3.3 70B (probado). Cambiar sin codigo: env RADAR_MODEL.
-MODEL = os.getenv("RADAR_MODEL", "meta/llama-4-maverick-17b-128e-instruct")
-FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
+# Principal: Kimi K2.6 (GANADOR eval golden-set: 10/10 aciertos + 10/10 JSON + razonamiento mas
+# profundo Y rapido ~2.4s). Fallback occidental: Llama 4 Maverick (9/10, rapido). Cambiar: env RADAR_MODEL.
+MODEL = os.getenv("RADAR_MODEL", "moonshotai/kimi-k2.6")
+FALLBACK_MODEL = "meta/llama-4-maverick-17b-128e-instruct"
 
 REQ_TIMEOUT = int(os.getenv("RADAR_REQ_TIMEOUT", "60"))  # bajado de 120: una respuesta colgada falla rapido y no estanca la corrida
-MAX_TOKENS = 200
+MAX_TOKENS = 350  # margen para que modelos que razonan (Kimi) terminen el JSON sin cortarse
 # Ritmo: 1 request cada 1.6s ~= 37 RPM, debajo del techo de 40 (margen de seguridad).
 # Subilo (ej. 2.5) si corres Hermes/n8n en paralelo sobre la MISMA key: el limite de 40
 # es GLOBAL por key, asi que todo lo que use la key suma.
