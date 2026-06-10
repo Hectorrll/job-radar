@@ -11,7 +11,7 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
-MAX_EVALUAR = 20          # cuantas vacantes nuevas evaluar por corrida (controla volumen)
+MAX_EVALUAR = 15          # cuantas vacantes nuevas evaluar por corrida (controla volumen)
 
 # Pre-filtro barato por palabras clave: descarta lo obviamente irrelevante ANTES
 # de gastar llamadas de IA. Solo lo que pase esto se evalua con Qwen3.5.
@@ -59,7 +59,7 @@ def main():
     # 3) EVALUAR con IA EN PARALELO (varios "agentes evaluadores", 1 sola API key).
     aceptadas = []
     if a_evaluar:
-        with ThreadPoolExecutor(max_workers=8) as ex:
+        with ThreadPoolExecutor(max_workers=3) as ex:
             veredictos = list(ex.map(evaluar.evaluar_vacante, a_evaluar))
         for v, ver in zip(a_evaluar, veredictos):
             seen.add(v["id"])  # marcar como visto (se haya aceptado o no)

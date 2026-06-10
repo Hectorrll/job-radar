@@ -1,6 +1,6 @@
 """Evalua una vacante con un modelo de IA de NVIDIA (gratis, OpenAI-compatible).
-Modelo: Llama 3.3 70B (rapido, sin "thinking", buen espanol) -> ideal para
-clasificar muchas vacantes sin timeouts.
+Modelo: Llama 3.3 70B (rapido, sin "thinking", buen espanol).
+Reintenta 1 vez si NVIDIA esta lento/saturado (free tier).
 """
 import os
 import json
@@ -31,15 +31,18 @@ def evaluar_vacante(v):
         "max_tokens": 120,
     }
     headers = {"Authorization": f"Bearer {NVIDIA_KEY}", "Accept": "application/json"}
-    try:
-        r = requests.post(URL, headers=headers, json=payload, timeout=60)
-        r.raise_for_status()
-        content = r.json()["choices"][0]["message"]["content"].strip()
-        ini, fin = content.find("{"), content.rfind("}")
-        if ini == -1 or fin == -1:
-            return {"aceptar": False, "motivo": "respuesta sin JSON"}
-        res = json.loads(content[ini:fin + 1])
-        return {"aceptar": bool(res.get("aceptar")), "motivo": str(res.get("motivo", ""))[:200]}
-    except Exception as e:
-        print(f"# WARN evaluar '{v['titulo'][:40]}': {e}")
-        return {"aceptar": False, "motivo": f"error: {e}"}
+    ultimo_error = ""
+    for intento in range(2):  # 1 reintento si falla (NVIDIA free tier lento)
+        try:
+            r = requests.post(URL, headers=headers, json=payload, timeout=120)
+            r.raise_for_status()
+            content = r.json()["choices"][0]["message"]["content"].strip()
+            ini, fin = content.find("{"), content.rfind("}")
+            if ini == -1 or fin == -1:
+                return {"aceptar": False, "motivo": "respuesta sin JSON"}
+            res = json.loads(content[ini:fin + 1])
+            return {"aceptar": bool(res.get("aceptar")), "motivo": str(res.get("motivo", ""))[:200]}
+        except Exception as e:
+            ultimo_error = str(e)
+    print(f"# WARN evaluar '{v['titulo'][:40]}': {ultimo_error}")
+    return {"aceptar": False, "motivo": f"error: {ultimo_error}"}
