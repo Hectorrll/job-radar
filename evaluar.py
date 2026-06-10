@@ -1,8 +1,9 @@
 """Evalua una vacante con un modelo de IA de NVIDIA (gratis, OpenAI-compatible).
 
-Modelo principal: Qwen3.5-122B (MoE 10B activos, mejor espanol del catalogo, rapido,
-no-"thinking"). Si falla o NVIDIA lo deprecia, cae a un FALLBACK probado (Llama 3.3 70B).
+Modelo principal: Llama 4 Scout (MoE 17B activos, ~2x mas rapido que Llama 3.3, occidental,
+no-"thinking", ideal para JSON). Si falla, cae a un FALLBACK probado (Llama 3.3 70B).
 El ID se puede cambiar sin tocar codigo con la env var RADAR_MODEL.
+(Qwen3.5-122B se descarto: fallaba/timeout ~68% en el tier gratis de NVIDIA.)
 
 Robustez (el free tier de NVIDIA = 40 RPM GLOBAL por key, no ampliable):
 - Limitador de ritmo (throttle) compartido entre hilos: arranca como mucho 1 request
@@ -22,8 +23,8 @@ import requests
 NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-# Principal (mejor espanol) + fallback probado. RADAR_MODEL permite cambiar sin editar codigo.
-MODEL = os.getenv("RADAR_MODEL", "qwen/qwen3.5-122b-a10b")
+# Principal (rapido, occidental) + fallback probado. RADAR_MODEL permite cambiar sin editar codigo.
+MODEL = os.getenv("RADAR_MODEL", "meta/llama-4-scout-17b-16e-instruct")
 FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
 
 REQ_TIMEOUT = int(os.getenv("RADAR_REQ_TIMEOUT", "60"))  # bajado de 120: una respuesta colgada falla rapido y no estanca la corrida
