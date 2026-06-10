@@ -3,6 +3,7 @@ Cada funcion devuelve una lista de vacantes normalizadas:
 {id, titulo, empresa, ubicacion, descripcion, link, fuente}
 """
 import requests
+import feedparser
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (job-radar personal de Hector)"}
 TIMEOUT = 30
@@ -91,5 +92,53 @@ def fetch_jobicy():
     return jobs
 
 
+def fetch_himalayas():
+    """Himalayas: ~100k trabajos remotos globales. Trae los paises permitidos."""
+    data = _get_json("https://himalayas.app/jobs/api?limit=100")
+    if not isinstance(data, dict):
+        return []
+    jobs = []
+    for j in (data.get("jobs") or []):
+        restr = j.get("locationRestrictions") or []
+        ubic = ", ".join(restr) if restr else "Mundial"
+        clave = j.get("guid") or j.get("id") or j.get("applicationLink", "")
+        jobs.append({
+            "id": f"himalayas-{clave}",
+            "titulo": j.get("title", "") or "",
+            "empresa": j.get("companyName", "") or "",
+            "ubicacion": ubic,
+            "descripcion": (j.get("excerpt", "") or j.get("description", "") or "")[:1500],
+            "link": j.get("applicationLink", "") or "",
+            "fuente": "Himalayas",
+        })
+    return jobs
+
+
+def fetch_weworkremotely():
+    """WeWorkRemotely: gran board remoto, via RSS por categoria."""
+    feeds = [
+        "https://weworkremotely.com/categories/remote-customer-support-jobs.rss",
+        "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        "https://weworkremotely.com/categories/all-other-remote-jobs.rss",
+    ]
+    jobs = []
+    for url in feeds:
+        try:
+            feed = feedparser.parse(url)
+            for e in feed.entries:
+                jobs.append({
+                    "id": f"wwr-{e.get('id', e.get('link', ''))}",
+                    "titulo": e.get("title", "") or "",
+                    "empresa": "",
+                    "ubicacion": "Remoto",
+                    "descripcion": (e.get("summary", "") or "")[:1500],
+                    "link": e.get("link", "") or "",
+                    "fuente": "WeWorkRemotely",
+                })
+        except Exception as ex:
+            print(f"# WARN wwr {url}: {ex}")
+    return jobs
+
+
 # Cada fetcher = un "agente de busqueda". Se corren en paralelo desde radar.py
-PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy]
+PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy, fetch_himalayas, fetch_weworkremotely]
