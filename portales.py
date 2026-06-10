@@ -24,6 +24,32 @@ def _get_json(url):
         return None
 
 
+def _get_text(url):
+    """Como _get_json pero devuelve texto/HTML (para portales que no dan JSON)."""
+    try:
+        r = _session.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        return r.text
+    except Exception as e:
+        print(f"# WARN fetch {url}: {e}")
+        return None
+
+
+def _entre(s, a, b):
+    """Extrae el texto entre el marcador 'a' y el 'b'. '' si no esta."""
+    i = s.find(a)
+    if i == -1:
+        return ""
+    i += len(a)
+    j = s.find(b, i)
+    return s[i:j] if j != -1 else ""
+
+
+def _limpiar(s):
+    """Quita tags HTML y desescapa entidades."""
+    return html.unescape(re.sub(r"<[^>]+>", " ", s or "")).strip()
+
+
 def fetch_remoteok():
     """RemoteOK: remoto global, mayormente tech. El 1er elemento es aviso legal."""
     data = _get_json("https://remoteok.com/api")
@@ -196,6 +222,82 @@ def fetch_workana():
     return jobs
 
 
+def fetch_linkedin():
+    """LinkedIn via el endpoint GUEST publico (sin login, sin riesgo de ban). Devuelve HTML
+    de tarjetas; se parsea con regex. El link se arma desde el jobPosting id (robusto).
+    Guest no da descripcion larga -> descripcion = titulo. Filtro remoto (f_WT=2)."""
+    base = ("https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
+            "?keywords={kw}&location=Latin%20America&f_WT=2&start=0")
+    queries = ["n8n", "automation", "ai%20annotation", "data%20entry",
+               "prompt%20engineer", "soporte%20bilingue", "ai%20content"]
+    jobs, vistos = [], set()
+    for kw in queries:
+        t = _get_text(base.format(kw=kw))
+        if not t:
+            continue
+        for c in re.split(r"<li>", t):
+            m = re.search(r'data-entity-urn="urn:li:jobPosting:(\d+)"', c)
+            if not m:
+                continue
+            jid = m.group(1)
+            if jid in vistos:
+                continue
+            vistos.add(jid)
+            titulo = _limpiar(_entre(c, 'base-search-card__title">', "</h3>"))
+            if not titulo:
+                continue
+            jobs.append({
+                "id": f"linkedin-{jid}",
+                "titulo": titulo,
+                "empresa": _limpiar(_entre(c, 'base-search-card__subtitle">', "</h4>")),
+                "ubicacion": _limpiar(_entre(c, 'job-search-card__location">', "</span>")) or "Remoto",
+                "descripcion": titulo[:MAX_DESC],  # guest no da el cuerpo
+                "link": f"https://www.linkedin.com/jobs/view/{jid}",
+                "fuente": "LinkedIn",
+            })
+    return jobs
+
+
+def fetch_remotive():
+    """Remotive: agregador remoto global, API JSON gratis."""
+    data = _get_json("https://remotive.com/api/remote-jobs?limit=100")
+    if not isinstance(data, dict):
+        return []
+    jobs = []
+    for j in data.get("jobs", []):
+        jobs.append({
+            "id": f"remotive-{j.get('id')}",
+            "titulo": j.get("title", "") or "",
+            "empresa": j.get("company_name", "") or "",
+            "ubicacion": j.get("candidate_required_location", "") or "Remoto",
+            "descripcion": _limpiar(j.get("description", ""))[:MAX_DESC],
+            "link": j.get("url", "") or "",
+            "fuente": "Remotive",
+        })
+    return jobs
+
+
+def fetch_arbeitnow():
+    """Arbeitnow: board global, API JSON gratis (mucho EU/tech; el prefiltro filtra)."""
+    data = _get_json("https://www.arbeitnow.com/api/job-board-api")
+    if not isinstance(data, dict):
+        return []
+    jobs = []
+    for j in data.get("data", []):
+        loc = j.get("location")
+        ubic = ", ".join(loc) if isinstance(loc, list) else (loc or "Remoto")
+        jobs.append({
+            "id": f"arbeitnow-{j.get('slug')}",
+            "titulo": j.get("title", "") or "",
+            "empresa": j.get("company_name", "") or "",
+            "ubicacion": ubic or "Remoto",
+            "descripcion": _limpiar(j.get("description", ""))[:MAX_DESC],
+            "link": j.get("url", "") or "",
+            "fuente": "Arbeitnow",
+        })
+    return jobs
+
+
 # Cada fetcher = un "agente de busqueda". Se corren en paralelo desde radar.py
 PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy, fetch_himalayas, fetch_weworkremotely,
-            fetch_workana]
+            fetch_workana, fetch_linkedin, fetch_remotive, fetch_arbeitnow]
