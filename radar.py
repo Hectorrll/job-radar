@@ -11,7 +11,7 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
-MAX_EVALUAR = 15          # cuantas vacantes nuevas evaluar por corrida (controla volumen)
+MAX_EVALUAR = 25          # cuantas vacantes nuevas evaluar por corrida (controla volumen)
 
 # Pre-filtro barato por palabras clave: descarta lo obviamente irrelevante ANTES
 # de gastar llamadas de IA. Solo lo que pase esto se evalua con Qwen3.5.
@@ -53,7 +53,14 @@ def main():
 
     # 2) PRE-FILTRAR por keywords + DEDUP contra lo ya visto.
     nuevas = [v for v in todas if es_relevante(v) and v["id"] not in seen]
-    nuevas.sort(key=lambda v: 0 if v["fuente"] == "GetOnBrd" else 1)  # espanol/Latam primero
+    nicho = ["n8n", "automation", "automatiz", "ai agent", "agente", "prompt",
+             "workflow", "make.com", "zapier", "no-code", "low-code"]
+
+    def _prioridad(v):
+        t = (v["titulo"] + " " + v["descripcion"]).lower()
+        return (0 if any(k in t for k in nicho) else 1, 0 if v["fuente"] == "GetOnBrd" else 1)
+
+    nuevas.sort(key=_prioridad)  # primero las de tu nicho fuerte (automatizacion/IA), luego espanol
     print(f"# {len(nuevas)} nuevas relevantes (evaluare hasta {MAX_EVALUAR})")
     a_evaluar = nuevas[:MAX_EVALUAR]
 
