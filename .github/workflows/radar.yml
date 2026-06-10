@@ -1,0 +1,37 @@
+name: Job Radar
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'    # cada 2 horas (en horario UTC)
+  workflow_dispatch: {}       # permite correrlo a mano desde la pestana Actions
+
+permissions:
+  contents: write             # para poder commitear seen.json
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Correr el radar
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python radar.py
+
+      - name: Guardar vacantes ya vistas
+        run: |
+          git config user.name "job-radar-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add seen.json
+          git commit -m "radar: actualizar vistos" || echo "sin cambios que guardar"
+          git push
