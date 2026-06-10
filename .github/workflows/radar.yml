@@ -2,19 +2,27 @@ name: Job Radar
 
 on:
   schedule:
-    - cron: '0 */2 * * *'    # cada 2 horas (en horario UTC)
+    # Cada hora en el minuto :37 (NO en :00 — GitHub atrasa/descarta los crons en la hora
+    # en punto). Correr cada hora garantiza cobertura <=2h aunque GitHub se salte alguno;
+    # el dedup (seen.json) evita reenviar repetidos -> mas frecuente = 0 spam extra.
+    - cron: '37 * * * *'
   workflow_dispatch: {}       # permite correrlo a mano desde la pestana Actions
 
 permissions:
   contents: write             # para poder commitear seen.json
 
+# Una sola corrida a la vez: evita que dos runs pisen seen.json (causa de duplicados).
+concurrency:
+  group: job-radar
+  cancel-in-progress: false
+
 jobs:
   radar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -33,5 +41,20 @@ jobs:
           git config user.name "job-radar-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add seen.json
-          git commit -m "radar: actualizar vistos" || echo "sin cambios que guardar"
-          git push
+          if git diff --cached --quiet; then
+            echo "sin cambios en seen.json"
+            exit 0
+          fi
+          git commit -m "radar: actualizar vistos"
+          # Push robusto: si el remoto cambio (commit del bot / push de codigo), rebase y reintenta.
+          # Garantiza que seen.json SIEMPRE se guarde -> nunca se reenvian trabajos ya avisados.
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push; then
+              echo "seen.json guardado (intento $i)"
+              exit 0
+            fi
+            echo "push fallo, reintento $i..."
+            sleep 4
+          done
+          echo "ERROR: no se pudo guardar seen.json tras 5 intentos"
+          exit 1

@@ -13,21 +13,32 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
-# Cuantas vacantes NUEVAS evaluar por corrida. Subido de 25 -> 100 para cubrir casi todo el
-# backlog relevante. Es seguro: evaluar.py limita el ritmo por debajo de 40 RPM (no rompe NVIDIA).
-MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "100"))
+# Cuantas vacantes NUEVAS evaluar por corrida. 150 = revisa TODO el panorama relevante en
+# detalle sin cortar (tras el dedup casi nunca hay tantas nuevas). Seguro: evaluar.py limita
+# el ritmo por debajo de 40 RPM (no rompe NVIDIA) y la corrida solo dura lo que tenga que durar.
+MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "150"))
 # Hilos de evaluacion en paralelo. El limitador de ritmo (evaluar.py) es el guard real del
-# rate; estos hilos solo mantienen lleno el pipeline.
-EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "4"))
+# rate; estos hilos solo mantienen lleno el pipeline para exprimir la API al maximo (~40 RPM).
+EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "8"))
 
 # Pre-filtro barato por palabras clave: descarta lo obviamente irrelevante ANTES
 # de gastar llamadas de IA. Solo lo que pase esto se evalua con Qwen3.5.
 KEYWORDS = [
+    # automatizacion / IA (nicho fuerte)
     "n8n", "make.com", "zapier", "automation", "automatizaci", "workflow",
     "integration", "integraci", "no-code", "low-code", "ai agent", "agente",
-    "prompt", "content qa", "quality", "annotation", "anotaci", "data entry",
-    "soporte", "support", "spanish", "espanol", "español", "bilingual",
-    "bilingüe", "customer", "virtual assistant", "asistente",
+    "prompt", "ai content", "ai data", "machine learning", "llm", "rlhf",
+    # QA / anotacion / etiquetado (diferenciador de Hector)
+    "content qa", "quality", "annotation", "anotaci", "labeling", "etiquet",
+    # data / oficina
+    "data entry", "data label", "transcrip", "spreadsheet", "hoja de calcul", "crm", "hubspot",
+    # soporte async / operaciones
+    "soporte", "support", "customer", "virtual assistant", "asistente",
+    "operacion", "back office", "backoffice", "lifecycle", "data entry",
+    # redaccion / traduccion (ingles ESCRITO ok)
+    "traduc", "translat", "redacci", "redactor", "copywrit",
+    # idioma
+    "spanish", "espanol", "español", "bilingual", "bilingüe",
 ]
 
 
@@ -51,6 +62,7 @@ def es_relevante(v):
 
 def main():
     seen = cargar_seen()
+    print(f"# modelo IA: {evaluar.MODEL} (fallback: {evaluar.FALLBACK_MODEL}) | ritmo 1 cada {evaluar.MIN_INTERVAL}s (~{round(60/evaluar.MIN_INTERVAL)} RPM)")
 
     # 1) BUSCAR: cada portal es un "agente" que corre EN PARALELO.
     with ThreadPoolExecutor(max_workers=max(1, len(portales.PORTALES))) as ex:

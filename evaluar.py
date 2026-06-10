@@ -26,7 +26,7 @@ URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 MODEL = os.getenv("RADAR_MODEL", "qwen/qwen3.5-122b-a10b")
 FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
 
-REQ_TIMEOUT = 120
+REQ_TIMEOUT = int(os.getenv("RADAR_REQ_TIMEOUT", "60"))  # bajado de 120: una respuesta colgada falla rapido y no estanca la corrida
 MAX_TOKENS = 200
 # Ritmo: 1 request cada 1.6s ~= 37 RPM, debajo del techo de 40 (margen de seguridad).
 # Subilo (ej. 2.5) si corres Hermes/n8n en paralelo sobre la MISMA key: el limite de 40
@@ -95,9 +95,11 @@ def evaluar_vacante(v):
     )
     modelos = [MODEL] if MODEL == FALLBACK_MODEL else [MODEL, FALLBACK_MODEL]
     ultimo_error = ""
-    for modelo in modelos:
+    for idx, modelo in enumerate(modelos):
+        if idx > 0:  # el modelo principal fallo -> avisamos que caemos al fallback
+            print(f"# INFO fallback -> {modelo}: '{v['titulo'][:35]}' ({ultimo_error[:50]})")
         backoff = 2.0
-        for intento in range(3):
+        for intento in range(2):
             try:
                 content = _pedir(prompt, modelo)
                 ini, fin = content.find("{"), content.rfind("}")
