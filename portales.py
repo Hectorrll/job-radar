@@ -2,6 +2,8 @@
 Cada funcion devuelve una lista de vacantes normalizadas:
 {id, titulo, empresa, ubicacion, descripcion, link, fuente}
 """
+import re
+import html
 import requests
 import feedparser
 
@@ -140,5 +142,55 @@ def fetch_weworkremotely():
     return jobs
 
 
+def fetch_workana():
+    """Workana: freelance LATAM/espanol. La web es una SPA (AngularJS), pero su
+    endpoint interno devuelve JSON sin login si se pide como XHR. Trae varias
+    paginas del feed en espanol. Nunca rompe: ante cualquier fallo devuelve []."""
+    hdrs = {**HEADERS, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+    jobs, vistos = [], set()
+    for page in (1, 2, 3):
+        try:
+            r = requests.get(
+                f"https://www.workana.com/jobs?language=es&page={page}",
+                headers=hdrs, timeout=TIMEOUT,
+            )
+            r.raise_for_status()
+            r.encoding = "utf-8"
+            data = r.json()
+        except Exception as e:
+            print(f"# WARN fetch workana p{page}: {e}")
+            continue
+        lista = (((data or {}).get("results") or {}).get("results")) or []
+        if not lista:
+            break
+        for j in lista:
+            slug = j.get("slug") or ""
+            if not slug or slug in vistos:
+                continue
+            vistos.add(slug)
+            traw = j.get("title", "") or ""
+            m = re.search(r'<span[^>]*title="([^"]+)"', traw)
+            titulo = html.unescape(m.group(1)) if m else re.sub(r"<[^>]+>", "", traw).strip()
+            cm = re.search(r"country=([A-Z]{2})", j.get("country", "") or "")
+            ubic = cm.group(1) if cm else "Remoto"
+            skills = ", ".join(
+                s.get("anchorText", "") for s in (j.get("skills") or []) if s.get("anchorText")
+            )
+            desc = j.get("description", "") or ""
+            extra = (f" | Skills: {skills}" if skills else "")
+            extra += (f" | Presupuesto: {j.get('budget','')}" if j.get("budget") else "")
+            jobs.append({
+                "id": f"workana-{slug}",
+                "titulo": titulo,
+                "empresa": j.get("authorName", "") or "",
+                "ubicacion": ubic,
+                "descripcion": (desc + extra).strip()[:1500],
+                "link": f"https://www.workana.com/job/{slug}",
+                "fuente": "Workana",
+            })
+    return jobs
+
+
 # Cada fetcher = un "agente de busqueda". Se corren en paralelo desde radar.py
-PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy, fetch_himalayas, fetch_weworkremotely]
+PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy, fetch_himalayas, fetch_weworkremotely,
+            fetch_workana]
