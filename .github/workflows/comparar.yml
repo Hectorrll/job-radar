@@ -1,0 +1,23 @@
+name: Comparar Modelos
+# Workflow de UN SOLO USO (manual): compara DeepSeek V4 Pro vs los Llama con las mismas
+# vacantes. NO corre solo (sin schedule). No toca el radar.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  comparar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Comparar modelos
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: python comparar_modelos.py
