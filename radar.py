@@ -2,7 +2,9 @@
 Flujo: buscar (portales en paralelo) -> prefiltrar -> dedup -> evaluar (en paralelo
 con IA) -> notificar a Telegram -> guardar vistos.
 """
+import os
 import json
+import html
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 
@@ -11,7 +13,12 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
-MAX_EVALUAR = 25          # cuantas vacantes nuevas evaluar por corrida (controla volumen)
+# Cuantas vacantes NUEVAS evaluar por corrida. Subido de 25 -> 100 para cubrir casi todo el
+# backlog relevante. Es seguro: evaluar.py limita el ritmo por debajo de 40 RPM (no rompe NVIDIA).
+MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "100"))
+# Hilos de evaluacion en paralelo. El limitador de ritmo (evaluar.py) es el guard real del
+# rate; estos hilos solo mantienen lleno el pipeline.
+EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "4"))
 
 # Pre-filtro barato por palabras clave: descarta lo obviamente irrelevante ANTES
 # de gastar llamadas de IA. Solo lo que pase esto se evalua con Qwen3.5.
@@ -75,7 +82,7 @@ def main():
     # 3) EVALUAR con IA EN PARALELO (varios "agentes evaluadores", 1 sola API key).
     aceptadas = []
     if a_evaluar:
-        with ThreadPoolExecutor(max_workers=3) as ex:
+        with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as ex:
             veredictos = list(ex.map(evaluar.evaluar_vacante, a_evaluar))
         for v, ver in zip(a_evaluar, veredictos):
             estado = "ACEPTA" if ver["aceptar"] else "descarta"
@@ -88,12 +95,12 @@ def main():
     if aceptadas:
         for v, ver in aceptadas:
             msg = (
-                f"✅ <b>{v['titulo']}</b>\n"
-                f"🏢 {v['empresa'] or '—'}\n"
-                f"📍 {v['ubicacion']}\n"
-                f"🔎 {v['fuente']}\n"
-                f"💡 {ver['motivo']}\n"
-                f"🔗 {v['link']}"
+                f"✅ <b>{html.escape(v['titulo'])}</b>\n"
+                f"🏢 {html.escape(v['empresa'] or '—')}\n"
+                f"📍 {html.escape(v['ubicacion'])}\n"
+                f"🔎 {html.escape(v['fuente'])}\n"
+                f"💡 {html.escape(ver['motivo'])}\n"
+                f"🔗 {html.escape(v['link'])}"
             )
             notificar.enviar(msg)
         print(f"# {len(aceptadas)} vacantes enviadas a Telegram")

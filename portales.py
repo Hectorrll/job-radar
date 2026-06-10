@@ -4,16 +4,19 @@ Cada funcion devuelve una lista de vacantes normalizadas:
 """
 import re
 import html
+import time
 import requests
 import feedparser
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (job-radar personal de Hector)"}
 TIMEOUT = 30
+MAX_DESC = 2500   # cuanto texto guardamos de cada vacante (para evaluar con mas detalle)
+_session = requests.Session()   # reusa conexiones TCP = fetch mas rapido
 
 
 def _get_json(url):
     try:
-        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r = _session.get(url, headers=HEADERS, timeout=TIMEOUT)
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -35,7 +38,7 @@ def fetch_remoteok():
             "titulo": j.get("position", "") or "",
             "empresa": j.get("company", "") or "",
             "ubicacion": j.get("location", "") or "Remoto",
-            "descripcion": (j.get("description", "") or "")[:1500],
+            "descripcion": (j.get("description", "") or "")[:MAX_DESC],
             "link": j.get("url") or j.get("apply_url", "") or "",
             "fuente": "RemoteOK",
         })
@@ -62,7 +65,7 @@ def fetch_getonbrd():
                 "titulo": attrs.get("title", "") or "",
                 "empresa": "",
                 "ubicacion": attrs.get("remote_modality", "") or "Remoto",
-                "descripcion": (attrs.get("description_headline", "") or attrs.get("description", "") or "")[:1500],
+                "descripcion": (attrs.get("description_headline", "") or attrs.get("description", "") or "")[:MAX_DESC],
                 "link": (j.get("links", {}) or {}).get("public_url", "") or "",
                 "fuente": "GetOnBrd",
             })
@@ -87,7 +90,7 @@ def fetch_jobicy():
                 "titulo": j.get("jobTitle", "") or "",
                 "empresa": j.get("companyName", "") or "",
                 "ubicacion": j.get("jobGeo", "") or "Remoto",
-                "descripcion": (j.get("jobExcerpt", "") or j.get("jobDescription", "") or "")[:1500],
+                "descripcion": (j.get("jobExcerpt", "") or j.get("jobDescription", "") or "")[:MAX_DESC],
                 "link": j.get("url", "") or "",
                 "fuente": "Jobicy",
             })
@@ -109,7 +112,7 @@ def fetch_himalayas():
             "titulo": j.get("title", "") or "",
             "empresa": j.get("companyName", "") or "",
             "ubicacion": ubic,
-            "descripcion": (j.get("excerpt", "") or j.get("description", "") or "")[:1500],
+            "descripcion": (j.get("excerpt", "") or j.get("description", "") or "")[:MAX_DESC],
             "link": j.get("applicationLink", "") or "",
             "fuente": "Himalayas",
         })
@@ -133,7 +136,7 @@ def fetch_weworkremotely():
                     "titulo": e.get("title", "") or "",
                     "empresa": "",
                     "ubicacion": "Remoto",
-                    "descripcion": (e.get("summary", "") or "")[:1500],
+                    "descripcion": (e.get("summary", "") or "")[:MAX_DESC],
                     "link": e.get("link", "") or "",
                     "fuente": "WeWorkRemotely",
                 })
@@ -148,9 +151,9 @@ def fetch_workana():
     paginas del feed en espanol. Nunca rompe: ante cualquier fallo devuelve []."""
     hdrs = {**HEADERS, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
     jobs, vistos = [], set()
-    for page in (1, 2, 3):
+    for page in range(1, 6):   # hasta 5 paginas: mas cobertura de su nicho ES/LATAM
         try:
-            r = requests.get(
+            r = _session.get(
                 f"https://www.workana.com/jobs?language=es&page={page}",
                 headers=hdrs, timeout=TIMEOUT,
             )
@@ -159,10 +162,9 @@ def fetch_workana():
             data = r.json()
         except Exception as e:
             print(f"# WARN fetch workana p{page}: {e}")
-            continue
-        lista = (((data or {}).get("results") or {}).get("results")) or []
-        if not lista:
             break
+        lista = (((data or {}).get("results") or {}).get("results")) or []
+        antes = len(vistos)
         for j in lista:
             slug = j.get("slug") or ""
             if not slug or slug in vistos:
@@ -184,10 +186,13 @@ def fetch_workana():
                 "titulo": titulo,
                 "empresa": j.get("authorName", "") or "",
                 "ubicacion": ubic,
-                "descripcion": (desc + extra).strip()[:1500],
+                "descripcion": (desc + extra).strip()[:MAX_DESC],
                 "link": f"https://www.workana.com/job/{slug}",
                 "fuente": "Workana",
             })
+        if len(vistos) == antes:   # pagina sin vacantes nuevas (fin de resultados) -> corto
+            break
+        time.sleep(0.4)            # ritmo educado entre paginas
     return jobs
 
 

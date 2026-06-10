@@ -52,4 +52,8 @@ Nivel: junior/generalista tech sólido en IA-ops, data y soporte. SIN título un
 Regla de oro: ante la duda sobre los DEALBREAKERS (inglés hablado, country-lock, presencial),
 DESCARTÁ. Ante la duda sobre el FIT cuando claramente toca uno de sus nichos fuertes, ACEPTÁ.
 
-Respondé SOLO con JSON en una línea: {"aceptar": true, "motivo": "una línea corta de por qué"}
+Leé la descripción COMPLETA antes de decidir (no te quedes solo con el título).
+Respondé SOLO con UNA línea de JSON válido — sin texto antes ni después, sin markdown, sin
+razonamiento. El "motivo" en español, claro y útil: el encaje concreto o el motivo exacto del
+descarte, en una frase:
+{"aceptar": true, "motivo": "por qué encaja (o por qué se descarta), en una frase clara"}
