@@ -23,9 +23,10 @@ import requests
 NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-# Principal (probado, rapido, confiable) + fallback de respaldo. RADAR_MODEL cambia sin editar codigo.
-MODEL = os.getenv("RADAR_MODEL", "meta/llama-3.3-70b-instruct")
-FALLBACK_MODEL = "qwen/qwen3.5-122b-a10b"
+# PROBANDO: Llama 4 Maverick (agentico + rapido) con fallback al PROBADO Llama 3.3 (red de seguridad).
+# Si Maverick da fallback alto / 404 -> revertir MODEL a meta/llama-3.3-70b-instruct.
+MODEL = os.getenv("RADAR_MODEL", "meta/llama-4-maverick-17b-128e-instruct")
+FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
 
 REQ_TIMEOUT = int(os.getenv("RADAR_REQ_TIMEOUT", "60"))  # bajado de 120: una respuesta colgada falla rapido y no estanca la corrida
 MAX_TOKENS = 200
