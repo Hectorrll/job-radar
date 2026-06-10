@@ -66,5 +66,30 @@ def fetch_getonbrd():
     return jobs
 
 
+def fetch_jobicy():
+    """Jobicy: remoto global. Busca en categorias afines a los nichos de Hector."""
+    jobs, vistos = [], set()
+    for tag in ["support", "supporting", "data-science", "dev", "copywriting", "admin"]:
+        data = _get_json(f"https://jobicy.com/api/v2/remote-jobs?count=40&tag={tag}")
+        if not isinstance(data, dict):
+            continue
+        lista = data.get("jobs") or data.get("data") or []
+        for j in lista:
+            jid = j.get("id")
+            if not jid or jid in vistos:
+                continue
+            vistos.add(jid)
+            jobs.append({
+                "id": f"jobicy-{jid}",
+                "titulo": j.get("jobTitle", "") or "",
+                "empresa": j.get("companyName", "") or "",
+                "ubicacion": j.get("jobGeo", "") or "Remoto",
+                "descripcion": (j.get("jobExcerpt", "") or j.get("jobDescription", "") or "")[:1500],
+                "link": j.get("url", "") or "",
+                "fuente": "Jobicy",
+            })
+    return jobs
+
+
 # Cada fetcher = un "agente de busqueda". Se corren en paralelo desde radar.py
-PORTALES = [fetch_remoteok, fetch_getonbrd]
+PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy]
