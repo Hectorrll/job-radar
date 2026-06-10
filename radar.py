@@ -53,6 +53,14 @@ def main():
 
     # 2) PRE-FILTRAR por keywords + DEDUP contra lo ya visto.
     nuevas = [v for v in todas if es_relevante(v) and v["id"] not in seen]
+    # dedup cross-portal DENTRO de la corrida: mismo trabajo en 2 boards = 1 solo aviso
+    _k, _dedup = set(), []
+    for v in nuevas:
+        clave = (v["titulo"].lower().strip() + "|" + v["empresa"].lower().strip())
+        if clave not in _k:
+            _k.add(clave)
+            _dedup.append(v)
+    nuevas = _dedup
     nicho = ["n8n", "automation", "automatiz", "ai agent", "agente", "prompt",
              "workflow", "make.com", "zapier", "no-code", "low-code"]
 
@@ -90,7 +98,7 @@ def main():
             notificar.enviar(msg)
         print(f"# {len(aceptadas)} vacantes enviadas a Telegram")
     else:
-        notificar.enviar(f"🛰️ Radar: 0 vacantes nuevas que encajen (revise {len(a_evaluar)} candidatas).")
+        print(f"# 0 matches esta corrida (revise {len(a_evaluar)}) - sin aviso a Telegram (evita ruido)")
 
     # 5) GUARDAR vistos (el workflow lo commitea al repo).
     guardar_seen(seen)
