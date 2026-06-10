@@ -1,11 +1,13 @@
 """Evalua una vacante con un modelo de IA de NVIDIA (gratis, OpenAI-compatible).
 
-Modelo principal: Kimi K2.6 (moonshotai/kimi-k2.6) -- GANADOR del eval golden-set de 10 vacantes:
-10/10 aciertos, 10/10 JSON, el razonamiento mas profundo y contextual de todos, Y rapido (~2.4s).
-Fallback occidental: Llama 4 Maverick (9/10, rapido). En el eval, DeepSeek-V4-Pro y MiniMax-M2.7
-tambien lograron 10/10 pero mas lentos (8.8s / 11.1s); Qwen=timeout68%, Scout=404 (descartados).
-Cambiar sin tocar codigo con env var RADAR_MODEL. Leccion: medir CALIDAD con golden set + mirar fallback.
-Nota compliance: Kimi es chino, OK para el radar (vacantes PUBLICAS, sin PII); para PII usar occidental.
+Modelo principal: Llama 4 Maverick (meta/llama-4-maverick-17b-128e-instruct) -- el mejor que
+FUNCIONA A ESCALA: 9/10 en el eval golden-set, rapido, occidental, y CONFIABLE con 100+ evals/corrida.
+Kimi K2.6 gano el eval por calidad (10/10) PERO a ESCALA da HTTP 429 ~79% (el free tier throttlea
+los modelos pesados/1T bajo volumen) -> desperdicia la API; sirve solo para lotes chicos. Lo mismo
+le pasaria a DeepSeek-V4-Pro / MiniMax (tambien 10/10 pero pesados). Fallback: Llama 3.3 70B (confiable).
+Descartados antes: Qwen=timeout68%, Scout=404. Cambiar sin codigo: env RADAR_MODEL.
+Leccion: la CALIDAD se mide con golden set, pero la ELECCION exige probar A ESCALA (fallback count en
+una corrida de 100+): los mejores razonadores se rate-limitan con volumen.
 
 Robustez (el free tier de NVIDIA = 40 RPM GLOBAL por key, no ampliable):
 - Limitador de ritmo (throttle) compartido entre hilos: arranca como mucho 1 request
@@ -25,10 +27,11 @@ import requests
 NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-# Principal: Kimi K2.6 (GANADOR eval golden-set: 10/10 aciertos + 10/10 JSON + razonamiento mas
-# profundo Y rapido ~2.4s). Fallback occidental: Llama 4 Maverick (9/10, rapido). Cambiar: env RADAR_MODEL.
-MODEL = os.getenv("RADAR_MODEL", "moonshotai/kimi-k2.6")
-FALLBACK_MODEL = "meta/llama-4-maverick-17b-128e-instruct"
+# Principal: Llama 4 Maverick (CONFIABLE A ESCALA: 9/10 en el eval + maneja 100+ evals sin 429,
+# rapido, occidental, eficiente con la API). Kimi K2.6 ganaba en calidad (10/10) PERO da 429 ~79%
+# a volumen -> desperdicia la API. Fallback: Llama 3.3 70B. Cambiar sin codigo: env RADAR_MODEL.
+MODEL = os.getenv("RADAR_MODEL", "meta/llama-4-maverick-17b-128e-instruct")
+FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
 
 REQ_TIMEOUT = int(os.getenv("RADAR_REQ_TIMEOUT", "60"))  # bajado de 120: una respuesta colgada falla rapido y no estanca la corrida
 MAX_TOKENS = 350  # margen para que modelos que razonan (Kimi) terminen el JSON sin cortarse
