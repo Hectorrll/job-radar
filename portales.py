@@ -227,38 +227,35 @@ def fetch_linkedin():
     de tarjetas; se parsea con regex. El link se arma desde el jobPosting id (robusto).
     Guest no da descripcion larga -> descripcion = titulo. Filtro remoto (f_WT=2)."""
     base = ("https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-            "?keywords={kw}&location=Latin%20America&f_WT=2&start={start}")
+            "?keywords={kw}&location=Latin%20America&f_WT=2&start=0")
     queries = ["n8n", "automation", "ai%20annotation", "data%20entry", "prompt%20engineer",
                "soporte%20bilingue", "ai%20content", "make.com", "zapier", "data%20labeling"]
     jobs, vistos = [], set()
     for kw in queries:
-        for start in (0, 25, 50):   # hasta 3 paginas por keyword (se adentra mas)
-            t = _get_text(base.format(kw=kw, start=start))
-            if not t:
-                break
-            antes = len(vistos)
-            for c in re.split(r"<li>", t):
-                m = re.search(r'data-entity-urn="urn:li:jobPosting:(\d+)"', c)
-                if not m:
-                    continue
-                jid = m.group(1)
-                if jid in vistos:
-                    continue
-                vistos.add(jid)
-                titulo = _limpiar(_entre(c, 'base-search-card__title">', "</h3>"))
-                if not titulo:
-                    continue
-                jobs.append({
-                    "id": f"linkedin-{jid}",
-                    "titulo": titulo,
-                    "empresa": _limpiar(_entre(c, 'base-search-card__subtitle">', "</h4>")),
-                    "ubicacion": _limpiar(_entre(c, 'job-search-card__location">', "</span>")) or "Remoto",
-                    "descripcion": titulo[:MAX_DESC],  # guest no da el cuerpo
-                    "link": f"https://www.linkedin.com/jobs/view/{jid}",
-                    "fuente": "LinkedIn",
-                })
-            if len(vistos) == antes:   # pagina sin nuevos para este keyword -> corto
-                break
+        t = _get_text(base.format(kw=kw))
+        time.sleep(0.5)   # pausa: LinkedIn rate-limitea (429) si se le pega rapido
+        if not t:
+            continue
+        for c in re.split(r"<li>", t):
+            m = re.search(r'data-entity-urn="urn:li:jobPosting:(\d+)"', c)
+            if not m:
+                continue
+            jid = m.group(1)
+            if jid in vistos:
+                continue
+            vistos.add(jid)
+            titulo = _limpiar(_entre(c, 'base-search-card__title">', "</h3>"))
+            if not titulo:
+                continue
+            jobs.append({
+                "id": f"linkedin-{jid}",
+                "titulo": titulo,
+                "empresa": _limpiar(_entre(c, 'base-search-card__subtitle">', "</h4>")),
+                "ubicacion": _limpiar(_entre(c, 'job-search-card__location">', "</span>")) or "Remoto",
+                "descripcion": titulo[:MAX_DESC],  # guest no da el cuerpo
+                "link": f"https://www.linkedin.com/jobs/view/{jid}",
+                "fuente": "LinkedIn",
+            })
     return jobs
 
 
