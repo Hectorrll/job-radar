@@ -176,7 +176,7 @@ def fetch_workana():
     endpoint interno devuelve JSON sin login si se pide como XHR. Trae varias
     paginas del feed en espanol. Nunca rompe: ante cualquier fallo devuelve []."""
     hdrs = {**HEADERS, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
-    jobs, vistos = [], set()
+    jobs, vistos, descartados_pago = [], set(), 0
     for page in range(1, 11):   # hasta 10 paginas: se adentra mas en su nicho ES/LATAM
         try:
             r = _session.get(
@@ -196,6 +196,13 @@ def fetch_workana():
             if not slug or slug in vistos:
                 continue
             vistos.add(slug)
+            # ANTI-ESTAFA (SOLO Workana): el cliente DEBE tener metodo de pago VERIFICADO. Workana
+            # expone hasVerifiedPaymentMethod; si es False = alto riesgo de post falso / cliente que
+            # no paga (Hector verifico: ~mitad de los posts son clientes nuevos sin pago verificado
+            # y con rating 0.00). Solo afecta a Workana; los otros portales NO se tocan.
+            if j.get("hasVerifiedPaymentMethod") is not True:
+                descartados_pago += 1
+                continue
             traw = j.get("title", "") or ""
             m = re.search(r'<span[^>]*title="([^"]+)"', traw)
             titulo = html.unescape(m.group(1)) if m else re.sub(r"<[^>]+>", "", traw).strip()
@@ -205,8 +212,11 @@ def fetch_workana():
                 s.get("anchorText", "") for s in (j.get("skills") or []) if s.get("anchorText")
             )
             desc = j.get("description", "") or ""
+            _rt = j.get("rating") if isinstance(j.get("rating"), dict) else {}
+            _rating = _rt.get("value")
             extra = (f" | Skills: {skills}" if skills else "")
             extra += (f" | Presupuesto: {j.get('budget','')}" if j.get("budget") else "")
+            extra += " | Cliente Workana: pago verificado ✓" + (f", rating {_rating}" if _rating and _rating != "0.00" else "")
             jobs.append({
                 "id": f"workana-{slug}",
                 "titulo": titulo,
@@ -219,6 +229,8 @@ def fetch_workana():
         if len(vistos) == antes:   # pagina sin vacantes nuevas (fin de resultados) -> corto
             break
         time.sleep(0.4)            # ritmo educado entre paginas
+    if descartados_pago:
+        print(f"# INFO workana: {descartados_pago} descartados por pago NO verificado (clientes de riesgo)")
     return jobs
 
 
