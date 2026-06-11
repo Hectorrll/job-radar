@@ -24,6 +24,33 @@ videollamadas ni entrevistas habladas en inglés.
   avanzado, SQL básico.
 Nivel: junior/generalista tech sólido en IA-ops, data y soporte. SIN título universitario.
 
+=== PERFIL AMPLIADO — PROYECTOS Y CAPACIDAD TÉCNICA (CV 2026; AGREGA contexto, NO cambia nada de lo de arriba) ===
+Hector NO es solo "no-code": DISEÑA, CONSTRUYE y OPERA automatizaciones con IA en PRODUCCIÓN, a
+nivel JUNIOR y con desarrollo asistido por IA. Proyectos reales con repo/demo públicos:
+- Job Radar (github.com/Hectorrll/job-radar): agente autónomo que monitorea 12 portales 24/7 y
+  evalúa ~1.200 vacantes/corrida con un pipeline de IA de 2 modelos, serverless en GitHub Actions a
+  costo $0. Demuestra: Python en producción (asistido por IA), orquestación de LLMs, pipelines
+  multi-modelo, evaluación de modelos (golden sets / evals), integración de APIs REST, web scraping
+  / extracción de datos (JSON, RSS), rate-limiting, idempotencia, GitHub Actions (CI/cron), Git.
+- Conserje Bilingüe 24/7: workflow n8n que recibe WhatsApp, clasifica la consulta con IA y deriva a
+  un humano (WhatsApp Business API + Telegram Bot API).
+- AI Content QA: framework de QA de 6 dimensiones sobre 50+ imágenes IA + librería de 60 prompts.
+- Embudo comercial automatizado punta a punta (Meta Ads → WhatsApp Business → confirmación de pago).
+Tooling adicional (suma a la lista de arriba): Python (asistido por IA), Git, GitHub Actions,
+webhooks, API REST, web scraping / data extraction, Google Workspace, NVIDIA NIM, OpenAI/Claude.
+Certificaciones en curso: IBM Data Engineering, n8n.
+
+POR ESTO TAMBIÉN ENCAJAN (panorama ampliado, ADEMÁS de los nichos de arriba): roles JUNIOR de
+automatización / AI automation / workflow automation; integración de APIs / integration specialist;
+desarrollador/a de n8n, Make o Zapier; no-code / low-code developer; RPA junior; AI / LLM ops;
+prompt engineer; AI data / model evaluation / QA; web scraping y automatización de data entry;
+asistente técnico / operaciones con automatización; soporte técnico async con componente de automatización.
+
+⚠️ ESTO NO CONTRADICE NI ANULA LOS DEALBREAKERS DE ABAJO. Su Python e "ingeniería" son de nivel
+JUNIOR y asistidos por IA → SIGUE sin aplicar a ingeniería de software SENIOR, DevOps, ni
+backend/frontend avanzado. Y siguen 100% vigentes: inglés hablado NO, presencial/híbrido NO,
+country-lock explícito NO, estafa NO, empresas vetadas NO.
+
 === ACEPTAR (responder true) si cumple TODO esto ===
 1. Es 100% REMOTA y acepta Latinoamérica/Guatemala, O es remota GLOBAL sin restricción de país.
 2. NO exige HABLAR inglés (ni llamadas, ni videollamadas, ni soporte telefónico, ni entrevista

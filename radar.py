@@ -43,6 +43,10 @@ KEYWORDS = [
     "traduc", "translat", "redacci", "redactor", "copywrit",
     # idioma
     "spanish", "espanol", "español", "bilingual", "bilingüe",
+    # ingenieria/automatizacion junior + tooling (del CV 2026) - AGREGADO: solo amplia cobertura,
+    # el evaluador (criterios.txt) sigue filtrando lo que no encaja (ej. dev senior).
+    "python", "whatsapp", "chatbot", "scraping", "data pipeline", "rpa", "ai automation",
+    "ai engineer", "google workspace", "github actions", "webhook", "openai",
 ]
 
 
