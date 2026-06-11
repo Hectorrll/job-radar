@@ -177,7 +177,7 @@ def fetch_workana():
     paginas del feed en espanol. Nunca rompe: ante cualquier fallo devuelve []."""
     hdrs = {**HEADERS, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
     jobs, vistos = [], set()
-    for page in range(1, 6):   # hasta 5 paginas: mas cobertura de su nicho ES/LATAM
+    for page in range(1, 11):   # hasta 10 paginas: se adentra mas en su nicho ES/LATAM
         try:
             r = _session.get(
                 f"https://www.workana.com/jobs?language=es&page={page}",
@@ -227,34 +227,38 @@ def fetch_linkedin():
     de tarjetas; se parsea con regex. El link se arma desde el jobPosting id (robusto).
     Guest no da descripcion larga -> descripcion = titulo. Filtro remoto (f_WT=2)."""
     base = ("https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-            "?keywords={kw}&location=Latin%20America&f_WT=2&start=0")
-    queries = ["n8n", "automation", "ai%20annotation", "data%20entry",
-               "prompt%20engineer", "soporte%20bilingue", "ai%20content"]
+            "?keywords={kw}&location=Latin%20America&f_WT=2&start={start}")
+    queries = ["n8n", "automation", "ai%20annotation", "data%20entry", "prompt%20engineer",
+               "soporte%20bilingue", "ai%20content", "make.com", "zapier", "data%20labeling"]
     jobs, vistos = [], set()
     for kw in queries:
-        t = _get_text(base.format(kw=kw))
-        if not t:
-            continue
-        for c in re.split(r"<li>", t):
-            m = re.search(r'data-entity-urn="urn:li:jobPosting:(\d+)"', c)
-            if not m:
-                continue
-            jid = m.group(1)
-            if jid in vistos:
-                continue
-            vistos.add(jid)
-            titulo = _limpiar(_entre(c, 'base-search-card__title">', "</h3>"))
-            if not titulo:
-                continue
-            jobs.append({
-                "id": f"linkedin-{jid}",
-                "titulo": titulo,
-                "empresa": _limpiar(_entre(c, 'base-search-card__subtitle">', "</h4>")),
-                "ubicacion": _limpiar(_entre(c, 'job-search-card__location">', "</span>")) or "Remoto",
-                "descripcion": titulo[:MAX_DESC],  # guest no da el cuerpo
-                "link": f"https://www.linkedin.com/jobs/view/{jid}",
-                "fuente": "LinkedIn",
-            })
+        for start in (0, 25, 50):   # hasta 3 paginas por keyword (se adentra mas)
+            t = _get_text(base.format(kw=kw, start=start))
+            if not t:
+                break
+            antes = len(vistos)
+            for c in re.split(r"<li>", t):
+                m = re.search(r'data-entity-urn="urn:li:jobPosting:(\d+)"', c)
+                if not m:
+                    continue
+                jid = m.group(1)
+                if jid in vistos:
+                    continue
+                vistos.add(jid)
+                titulo = _limpiar(_entre(c, 'base-search-card__title">', "</h3>"))
+                if not titulo:
+                    continue
+                jobs.append({
+                    "id": f"linkedin-{jid}",
+                    "titulo": titulo,
+                    "empresa": _limpiar(_entre(c, 'base-search-card__subtitle">', "</h4>")),
+                    "ubicacion": _limpiar(_entre(c, 'job-search-card__location">', "</span>")) or "Remoto",
+                    "descripcion": titulo[:MAX_DESC],  # guest no da el cuerpo
+                    "link": f"https://www.linkedin.com/jobs/view/{jid}",
+                    "fuente": "LinkedIn",
+                })
+            if len(vistos) == antes:   # pagina sin nuevos para este keyword -> corto
+                break
     return jobs
 
 
@@ -321,26 +325,35 @@ def fetch_workingnomads():
 
 def fetch_n8n_community():
     """n8n Community Jobs (Discourse JSON). NICHO EXACTO de Hector: gigs de n8n/automatizacion/IA.
-    Salta los posts fijados (pinned, ej. 'About the category'). El body no viene en el listado."""
-    data = _get_json("https://community.n8n.io/c/jobs/13.json")
-    if not isinstance(data, dict):
-        return []
-    jobs = []
-    for t in ((data.get("topic_list", {}) or {}).get("topics", []) or []):
-        if t.get("pinned") or not t.get("id"):
-            continue
-        titulo = t.get("title", "") or ""
-        if not titulo:
-            continue
-        jobs.append({
-            "id": f"n8n-{t.get('id')}",
-            "titulo": titulo,
-            "empresa": "",
-            "ubicacion": "Remoto",
-            "descripcion": titulo[:MAX_DESC],  # el listado no trae el cuerpo
-            "link": f"https://community.n8n.io/t/{t.get('slug', '')}/{t.get('id')}",
-            "fuente": "n8n Community",
-        })
+    Recorre varias paginas (se adentra mas). Salta posts fijados. El body no viene en el listado."""
+    jobs, vistos = [], set()
+    for page in range(5):   # hasta 5 paginas de la categoria jobs
+        data = _get_json(f"https://community.n8n.io/c/jobs/13.json?page={page}")
+        if not isinstance(data, dict):
+            break
+        tops = ((data.get("topic_list", {}) or {}).get("topics", []) or [])
+        if not tops:
+            break
+        antes = len(vistos)
+        for t in tops:
+            tid = t.get("id")
+            if t.get("pinned") or not tid or tid in vistos:
+                continue
+            vistos.add(tid)
+            titulo = t.get("title", "") or ""
+            if not titulo:
+                continue
+            jobs.append({
+                "id": f"n8n-{tid}",
+                "titulo": titulo,
+                "empresa": "",
+                "ubicacion": "Remoto",
+                "descripcion": titulo[:MAX_DESC],  # el listado no trae el cuerpo
+                "link": f"https://community.n8n.io/t/{t.get('slug', '')}/{tid}",
+                "fuente": "n8n Community",
+            })
+        if len(vistos) == antes:   # pagina sin topics nuevos -> corto
+            break
     return jobs
 
 
