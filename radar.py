@@ -62,7 +62,12 @@ def es_relevante(v):
 
 def main():
     seen = cargar_seen()
-    print(f"# modelo IA: {evaluar.MODEL} (fallback: {evaluar.FALLBACK_MODEL}) | {len(evaluar.KEYS)} key(s) x ~{round(60/evaluar.MIN_INTERVAL)} RPM = ~{len(evaluar.KEYS)*round(60/evaluar.MIN_INTERVAL)} RPM total")
+    _kf = len(evaluar.KEYS_FAST)
+    print(f"# NIVEL 1 screening: {evaluar.MODEL} | {_kf} key(s) fast = ~{_kf*round(60/evaluar.MIN_INTERVAL)} RPM")
+    if evaluar.tiene_think():
+        print(f"# NIVEL 2 profundo: {evaluar.THINK_MODEL} (fallback {evaluar.THINK_FALLBACK}) | {len(evaluar.KEYS_THINK)} key(s) think dedicadas")
+    else:
+        print("# NIVEL 2 profundo: OFF (agregar NVIDIA_API_KEY_5/_6 para activarlo)")
 
     # 1) BUSCAR: cada portal es un "agente" que corre EN PARALELO.
     with ThreadPoolExecutor(max_workers=max(1, len(portales.PORTALES))) as ex:
@@ -107,19 +112,30 @@ def main():
             if ver["aceptar"]:
                 aceptadas.append((v, ver))
 
-    # 4) NOTIFICAR a Telegram.
+    # 4) NIVEL 2 (lectura PROFUNDA thinking de los ACEPTADOS) + NOTIFICAR a Telegram.
     if aceptadas:
-        for v, ver in aceptadas:
+        profundos = [None] * len(aceptadas)
+        if evaluar.tiene_think():
+            with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as ex:
+                profundos = list(ex.map(lambda par: evaluar.evaluar_profundo(par[0]), aceptadas))
+        n_prof = 0
+        for (v, ver), prof in zip(aceptadas, profundos):
+            if prof and prof.get("motivo"):
+                n_prof += 1
+                # Opcion A: nunca filtra. Si el thinking duda, se manda igual con la nota.
+                motivo = ("🧠 " + prof["motivo"]) if prof["aceptar"] else ("🧠⚠️ 2da opinion DUDA: " + prof["motivo"])
+            else:
+                motivo = ver["motivo"]
             msg = (
                 f"✅ <b>{html.escape(v['titulo'])}</b>\n"
                 f"🏢 {html.escape(v['empresa'] or '—')}\n"
                 f"📍 {html.escape(v['ubicacion'])}\n"
                 f"🔎 {html.escape(v['fuente'])}\n"
-                f"💡 {html.escape(ver['motivo'])}\n"
+                f"💡 {html.escape(motivo)}\n"
                 f"🔗 {html.escape(v['link'])}"
             )
             notificar.enviar(msg)
-        print(f"# {len(aceptadas)} vacantes enviadas a Telegram")
+        print(f"# {len(aceptadas)} vacantes enviadas a Telegram ({n_prof} con lectura profunda)")
     else:
         print(f"# 0 matches esta corrida (revise {len(a_evaluar)}) - sin aviso a Telegram (evita ruido)")
 
