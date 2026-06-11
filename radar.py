@@ -68,6 +68,10 @@ def main():
     with ThreadPoolExecutor(max_workers=max(1, len(portales.PORTALES))) as ex:
         resultados = list(ex.map(lambda f: f(), portales.PORTALES))
     todas = [v for lista in resultados for v in lista]
+    # Desglose POR PORTAL (transparencia: confirmar que TODOS traen, detectar si alguno da 0)
+    for f, lista in zip(portales.PORTALES, resultados):
+        nombre = lista[0]["fuente"] if lista else f.__name__.replace("fetch_", "")
+        print(f"#   - {nombre}: {len(lista)}")
     print(f"# {len(todas)} vacantes traidas de {len(portales.PORTALES)} portales")
 
     # 2) PRE-FILTRAR por keywords + DEDUP contra lo ya visto.
