@@ -1,0 +1,23 @@
+name: Demo Thinking
+# Demo de UN SOLO USO (manual): compara como razonan Maverick vs Kimi vs DeepSeek sobre las
+# mismas vacantes reales. No corre solo, no toca el radar.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Demo comparativa
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: python demo_thinking.py
