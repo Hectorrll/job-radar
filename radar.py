@@ -13,10 +13,10 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
-# Cuantas vacantes NUEVAS evaluar por corrida. 150 = revisa TODO el panorama relevante en
-# detalle sin cortar (tras el dedup casi nunca hay tantas nuevas). Seguro: evaluar.py limita
-# el ritmo por debajo de 40 RPM (no rompe NVIDIA) y la corrida solo dura lo que tenga que durar.
-MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "150"))
+# Cuantas vacantes NUEVAS evaluar por corrida. 250 aprovecha el DOBLE presupuesto de 2 keys
+# NVIDIA (~76 RPM). Tras el dedup casi nunca hay tantas nuevas; el tope solo aplica en corridas
+# frias. Seguro: evaluar.py limita el ritmo POR KEY por debajo de 40 RPM (no rompe NVIDIA).
+MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "250"))
 # Hilos de evaluacion en paralelo. El limitador de ritmo (evaluar.py) es el guard real del
 # rate; estos hilos solo mantienen lleno el pipeline para exprimir la API al maximo (~40 RPM).
 EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "8"))
@@ -62,7 +62,7 @@ def es_relevante(v):
 
 def main():
     seen = cargar_seen()
-    print(f"# modelo IA: {evaluar.MODEL} (fallback: {evaluar.FALLBACK_MODEL}) | ritmo 1 cada {evaluar.MIN_INTERVAL}s (~{round(60/evaluar.MIN_INTERVAL)} RPM)")
+    print(f"# modelo IA: {evaluar.MODEL} (fallback: {evaluar.FALLBACK_MODEL}) | {len(evaluar.KEYS)} key(s) x ~{round(60/evaluar.MIN_INTERVAL)} RPM = ~{len(evaluar.KEYS)*round(60/evaluar.MIN_INTERVAL)} RPM total")
 
     # 1) BUSCAR: cada portal es un "agente" que corre EN PARALELO.
     with ThreadPoolExecutor(max_workers=max(1, len(portales.PORTALES))) as ex:

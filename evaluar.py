@@ -24,7 +24,11 @@ import threading
 
 import requests
 
-NVIDIA_KEY = os.environ["NVIDIA_API_KEY"]
+# Una o DOS keys: NVIDIA_API_KEY [+ NVIDIA_API_KEY_2]. Con 2 keys (ej. cuenta de Hector + de su
+# mama) las llamadas se reparten round-robin -> cada key conserva su ~38 RPM => ~76 RPM combinados.
+KEYS = [k for k in [os.getenv("NVIDIA_API_KEY"), os.getenv("NVIDIA_API_KEY_2")] if k]
+if not KEYS:
+    raise SystemExit("# ERROR: falta NVIDIA_API_KEY")
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
 # Principal: Llama 4 Maverick (CONFIABLE A ESCALA: 9/10 en el eval + maneja 100+ evals sin 429,
@@ -45,18 +49,28 @@ with open("criterios.txt", encoding="utf-8") as f:
 
 _session = requests.Session()
 
-# --- Limitador de ritmo compartido entre hilos (reserva de turnos) ---
-_rate_lock = threading.Lock()
-_next_slot = [0.0]
+# --- Limitador de ritmo POR KEY (cada key tiene su propio presupuesto de ~38 RPM) ---
+# Las llamadas se reparten round-robin entre las keys; con 2 keys el throughput se duplica.
+_key_locks = [threading.Lock() for _ in KEYS]
+_key_next = [[0.0] for _ in KEYS]
+_rr_lock = threading.Lock()
+_rr = [0]
 
 
-def _throttle():
-    """Reserva el proximo turno de envio para no superar ~1/MIN_INTERVAL requests/seg.
-    Cada hilo toma un turno futuro y duerme hasta el; los arranques quedan espaciados."""
-    with _rate_lock:
+def _pick_key():
+    """Round-robin: indice de la proxima key a usar."""
+    with _rr_lock:
+        i = _rr[0] % len(KEYS)
+        _rr[0] += 1
+    return i
+
+
+def _throttle(i):
+    """Reserva el proximo turno de la key i (no pasar ~1/MIN_INTERVAL req/seg POR KEY)."""
+    with _key_locks[i]:
         now = time.monotonic()
-        start_at = max(now, _next_slot[0])
-        _next_slot[0] = start_at + MIN_INTERVAL
+        start_at = max(now, _key_next[i][0])
+        _key_next[i][0] = start_at + MIN_INTERVAL
         wait = start_at - now
     if wait > 0:
         time.sleep(wait)
@@ -77,8 +91,9 @@ def _pedir(prompt, modelo):
         "temperature": 0.1,
         "max_tokens": MAX_TOKENS,
     }
-    headers = {"Authorization": f"Bearer {NVIDIA_KEY}", "Accept": "application/json"}
-    _throttle()
+    i = _pick_key()
+    headers = {"Authorization": f"Bearer {KEYS[i]}", "Accept": "application/json"}
+    _throttle(i)
     r = _session.post(URL, headers=headers, json=payload, timeout=REQ_TIMEOUT)
     if r.status_code == 429:
         ra = r.headers.get("Retry-After", "")
