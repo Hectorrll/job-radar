@@ -24,10 +24,10 @@ import threading
 
 import requests
 
-# Hasta 3 keys: NVIDIA_API_KEY [+ _2] [+ _3] (ej. cuentas de Hector + mama + primo). Las llamadas
-# se reparten round-robin -> cada key conserva su ~38 RPM => 2 keys ~76 RPM, 3 keys ~114 RPM.
+# Hasta 4 keys: NVIDIA_API_KEY [+ _2] [+ _3] [+ _4] (Hector + mama + primo + tio). Round-robin
+# -> cada key conserva su ~38 RPM => 2=~76, 3=~114, 4=~152 RPM combinados.
 KEYS = [k for k in [os.getenv("NVIDIA_API_KEY"), os.getenv("NVIDIA_API_KEY_2"),
-                    os.getenv("NVIDIA_API_KEY_3")] if k]
+                    os.getenv("NVIDIA_API_KEY_3"), os.getenv("NVIDIA_API_KEY_4")] if k]
 if not KEYS:
     raise SystemExit("# ERROR: falta NVIDIA_API_KEY")
 URL = "https://integrate.api.nvidia.com/v1/chat/completions"

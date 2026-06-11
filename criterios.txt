@@ -32,14 +32,20 @@ Nivel: junior/generalista tech sólido en IA-ops, data y soporte. SIN título un
    prompt engineering, AI data annotation/evaluation/training, automatización
    (n8n/Make/Zapier/IA/no-code/AI agents), soporte async (español o bilingüe escrito), data
    entry, operaciones/gestión de casos, o marketing/copywriting en español.
-4. Si menciona sueldo, que NO sea claramente menor a USD 400/mes (o equivalente). Si NO menciona
-   sueldo, NO la descartes por eso.
+4. Sueldo: Hector está ARRANCANDO y le SIRVE tomar gigs chicos (incluso USD 150-300) para hacer
+   un primer cliente y conseguir testimonio. ACEPTÁ aunque el pago sea bajo, si es un trabajo
+   real de su nicho. Solo descartá por pago si es una estafa/explotación absurda (pago irrisorio
+   para muchísimo trabajo) o si piden que él PAGUE. Si no menciona sueldo, NO descartes por eso.
 
 === DESCARTAR (responder false) si pasa CUALQUIERA ===
 - Exige INGLÉS HABLADO o "fluent/native/excellent verbal English", llamadas/videos/reuniones por
   voz, o soporte telefónico.
-- Country-lock que EXCLUYE Guatemala/Latam (ej. "US only", "EU only", "Chile/Perú/México only",
-  "must reside in...").
+- Country-lock EXPLÍCITO que Hector no puede cumplir: el aviso EXIGE residir/estar en EE.UU.,
+  Canadá, UK o Europa ("US only", "must reside in the US/UK/EU", "only candidates based in [país
+  no-Latam]"). ⚠️ NO es country-lock que el trabajo solo esté UBICADO en un país o sea de una
+  empresa de Latam/España (ej. "Colombia", "México", "remoto LATAM"): esos roles remotos casi
+  siempre aceptan a toda Latinoamérica → NO descartes por una ubicación hispana/Latam sin
+  requisito EXPLÍCITO de residencia.
 - Presencial o híbrida (requiere presencia física / ir a oficina).
 - Empresas/pools vetados: DataAnnotation, Mercor, TELUS International, Appen, CrowdGen,
   Lionbridge, Remotasks, Outlier (como empleador), 20four7VA, Concentrix, TaskUs, Arise.
@@ -49,8 +55,10 @@ Nivel: junior/generalista tech sólido en IA-ops, data y soporte. SIN título un
 - Señales de "ghost job" / estafa: descripción genérica copy-paste, sin empresa real, piden PAGO
   por "training"/onboarding, sueldo absurdo, o "aplicá para ver".
 
-Regla de oro: ante la duda sobre los DEALBREAKERS (inglés hablado, country-lock, presencial),
-DESCARTÁ. Ante la duda sobre el FIT cuando claramente toca uno de sus nichos fuertes, ACEPTÁ.
+Regla de oro: ante la duda sobre INGLÉS HABLADO o PRESENCIAL → DESCARTÁ. Pero sobre UBICACIÓN →
+descartá SOLO si exige EXPLÍCITAMENTE residir en EE.UU./Canadá/UK/Europa; si es remoto y la
+ubicación es Latam/hispana o no la especifica, ACEPTÁ (a Hector le sirve). Ante la duda sobre el
+FIT cuando toca uno de sus nichos, ACEPTÁ.
 
 Leé la descripción COMPLETA antes de decidir (no te quedes solo con el título).
 Respondé SOLO con UNA línea de JSON válido — sin texto antes ni después, sin markdown, sin
