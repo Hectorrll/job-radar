@@ -1,0 +1,25 @@
+name: Test Filtro
+# Test de UN SOLO USO (manual): confirma que el criterio rechaza hibridos/presenciales/senior
+# y acepta los remotos buenos. No corre solo, no toca el radar ni seen.json.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Test filtro
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_API_KEY_2: ${{ secrets.NVIDIA_API_KEY_2 }}
+          NVIDIA_API_KEY_3: ${{ secrets.NVIDIA_API_KEY_3 }}
+          NVIDIA_API_KEY_4: ${{ secrets.NVIDIA_API_KEY_4 }}
+          NVIDIA_API_KEY_5: ${{ secrets.NVIDIA_API_KEY_5 }}
+          NVIDIA_API_KEY_6: ${{ secrets.NVIDIA_API_KEY_6 }}
+        run: python test_filtro.py
