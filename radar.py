@@ -13,10 +13,10 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
-# Cuantas vacantes NUEVAS evaluar por corrida. 250 aprovecha el DOBLE presupuesto de 2 keys
-# NVIDIA (~76 RPM). Tras el dedup casi nunca hay tantas nuevas; el tope solo aplica en corridas
-# frias. Seguro: evaluar.py limita el ritmo POR KEY por debajo de 40 RPM (no rompe NVIDIA).
-MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "250"))
+# Cuantas vacantes NUEVAS evaluar por corrida. 400 aprovecha el TRIPLE presupuesto de 3 keys
+# NVIDIA (~114 RPM). Tras el dedup casi nunca hay tantas nuevas; el tope solo aplica en corridas
+# frias/grandes. Seguro: evaluar.py limita el ritmo POR KEY por debajo de 40 RPM (no rompe NVIDIA).
+MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "400"))
 # Hilos de evaluacion en paralelo. El limitador de ritmo (evaluar.py) es el guard real del
 # rate; estos hilos solo mantienen lleno el pipeline para exprimir la API al maximo (~40 RPM).
 EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "8"))
