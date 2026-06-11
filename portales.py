@@ -354,7 +354,50 @@ def fetch_n8n_community():
     return jobs
 
 
+def fetch_hn():
+    """Hacker News 'Who is Hiring' (thread mensual, via Algolia API gratis). Empleos remoto-global
+    de calidad, directos del que contrata, muchos async/cualquier-pais. Encuentra el thread del mes
+    y trae los posts de trabajo (comentarios top-level). El filtro/IA descarta los ONSITE/no-fit."""
+    d = _get_json("https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&hitsPerPage=12")
+    if not isinstance(d, dict):
+        return []
+    sid = None
+    for h in (d.get("hits") or []):
+        if "who is hiring" in (h.get("title", "") or "").lower() and h.get("objectID"):
+            sid = int(h["objectID"])
+            break
+    if not sid:
+        return []
+    jobs = []
+    for page in range(5):   # ~475 comentarios = 5 paginas de 100
+        data = _get_json(f"https://hn.algolia.com/api/v1/search?tags=comment,story_{sid}&hitsPerPage=100&page={page}")
+        if not isinstance(data, dict):
+            break
+        hits = data.get("hits") or []
+        if not hits:
+            break
+        for h in hits:
+            if h.get("parent_id") != sid:   # solo posts de trabajo (top-level), no respuestas
+                continue
+            oid = h.get("objectID")
+            txt = _limpiar(h.get("comment_text", ""))
+            if not oid or not txt:
+                continue
+            primera = txt.split("\n")[0][:200]
+            parts = [p.strip() for p in primera.split("|")]
+            jobs.append({
+                "id": f"hn-{oid}",
+                "titulo": primera,
+                "empresa": (parts[0][:80] if parts else ""),
+                "ubicacion": (parts[2][:60] if len(parts) >= 3 else "ver descripcion"),
+                "descripcion": txt[:MAX_DESC],
+                "link": f"https://news.ycombinator.com/item?id={oid}",
+                "fuente": "HN Who is Hiring",
+            })
+    return jobs
+
+
 # Cada fetcher = un "agente de busqueda". Se corren en paralelo desde radar.py
 PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy, fetch_himalayas, fetch_weworkremotely,
             fetch_workana, fetch_linkedin, fetch_remotive, fetch_arbeitnow,
-            fetch_workingnomads, fetch_n8n_community]
+            fetch_workingnomads, fetch_n8n_community, fetch_hn]
