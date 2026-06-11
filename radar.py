@@ -138,9 +138,13 @@ def main():
             seen.add(v["id"])  # marcar como visto (se haya aceptado o no)
             (aceptadas if ver["aceptar"] else rechazadas).append((v, ver))
 
-    # 4) NIVEL 2 (thinking, si hay keys 5/6): (a) lectura PROFUNDA de los aceptados (enriquece /
-    #    2da opinion, Opcion A: NUNCA filtra); (b) RESCATE de falsos negativos: re-lee los rechazos
-    #    DE NICHO -> si el thinking los ACEPTA, los rescata (Maverick los tumbo por error, ej. System.io).
+    # 4) NIVEL 2 (thinking, si hay keys 5/6): los modelos de RAZONAMIENTO son el ARBITRO FINAL,
+    #    corrigiendo a Maverick en AMBAS direcciones:
+    #    (a) re-leen los ACEPTADOS -> si CONFIRMAN, se manda (🧠); si DESCARTAN (detectan un
+    #        dealbreaker que Maverick paso por alto: hibrido/presencial/otro pais/senior/ingles
+    #        hablado), se FILTRA y NO se manda.
+    #    (b) RESCATE: re-leen los rechazos DE NICHO -> si los ACEPTAN, los rescatan (🆘).
+    #    El rescate (b) protege contra perder buenos; el filtro (a) saca la basura (hibridos, etc.).
     enviar = []   # lista de (v, motivo_final) a mandar a Telegram
     if not evaluar.tiene_think():
         enviar = [(v, ver["motivo"]) for v, ver in aceptadas]
@@ -149,26 +153,32 @@ def main():
         with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as ex:
             prof_acc = list(ex.map(lambda par: evaluar.evaluar_profundo(par[0]), aceptadas))
             prof_res = list(ex.map(lambda par: evaluar.evaluar_profundo(par[0]), rescatables))
-        # (a) aceptados -> enriquecer con la lectura profunda
+        # (a) aceptados -> el thinking CONFIRMA (manda) o DESCARTA (filtra, no manda)
+        n_filtrados = 0
         for (v, ver), prof in zip(aceptadas, prof_acc):
             if prof and prof.get("motivo"):
+                decision = "ACEPTA" if prof["aceptar"] else "DESCARTA->filtra"
                 print(f"#   [PROFUNDO] {v['fuente']}: {v['titulo'][:38]}")
                 print(f"#       screening (Maverick): {ver['motivo'][:110]}")
-                print(f"#       profundo  (Kimi):     [{'ACEPTA' if prof['aceptar'] else 'DUDA'}] {prof['motivo'][:110]}")
-                motivo = ("🧠 " + prof["motivo"]) if prof["aceptar"] else ("🧠⚠️ 2da opinion DUDA: " + prof["motivo"])
+                print(f"#       profundo  (thinking): [{decision}] {prof['motivo'][:110]}")
+                if not prof["aceptar"]:
+                    n_filtrados += 1   # dealbreaker detectado por el thinking -> NO se manda
+                    continue
+                motivo = "🧠 " + prof["motivo"]
             else:
+                # Sin lectura profunda valida (fallo de IA) -> mandar con motivo de Maverick (no perder por un error tecnico).
                 motivo = ver["motivo"]
             enviar.append((v, motivo))
         # (b) rescate de falsos negativos de nicho
         n_resc = 0
         for (v, ver), prof in zip(rescatables, prof_res):
-            if prof and prof.get("aceptar"):   # Kimi RESCATA lo que Maverick tumbo mal
+            if prof and prof.get("aceptar"):   # el thinking RESCATA lo que Maverick tumbo mal
                 n_resc += 1
                 print(f"#   [RESCATE] {v['fuente']}: {v['titulo'][:38]}")
                 print(f"#       Maverick descarto: {ver['motivo'][:95]}")
-                print(f"#       Kimi RESCATA:      {prof['motivo'][:95]}")
+                print(f"#       thinking RESCATA:  {prof['motivo'][:95]}")
                 enviar.append((v, "🧠🆘 RESCATADO (Maverick lo habia descartado): " + prof["motivo"]))
-        print(f"# Nivel 2: {len(aceptadas)} aceptados re-leidos | rescate: {n_resc}/{len(rescatables)} rechazos de nicho recuperados")
+        print(f"# Nivel 2: {len(aceptadas)} aceptados | thinking FILTRO {n_filtrados} (dealbreakers) | rescato {n_resc}/{len(rescatables)}")
 
     # 5) NOTIFICAR a Telegram.
     if enviar:

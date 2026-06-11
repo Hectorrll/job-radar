@@ -65,15 +65,23 @@ country-lock explícito NO, estafa NO, empresas vetadas NO.
    para muchísimo trabajo) o si piden que él PAGUE. Si no menciona sueldo, NO descartes por eso.
 
 === DESCARTAR (responder false) si pasa CUALQUIERA ===
-- Exige INGLÉS HABLADO o "fluent/native/excellent verbal English", llamadas/videos/reuniones por
-  voz, o soporte telefónico.
+- Exige INGLÉS HABLADO: "fluent/native/excellent verbal/spoken English", o
+  llamadas/videollamadas/reuniones/soporte telefónico EN INGLÉS. ⚠️ OJO: voz/llamadas/teléfono EN
+  ESPAÑOL SÍ las puede hacer (español nativo) → NO descartes un rol de voz/soporte por ser
+  telefónico si es en español o bilingüe; descartá solo si exige HABLAR INGLÉS.
 - Country-lock EXPLÍCITO que Hector no puede cumplir: el aviso EXIGE residir/estar en EE.UU.,
   Canadá, UK o Europa ("US only", "must reside in the US/UK/EU", "only candidates based in [país
   no-Latam]"). ⚠️ NO es country-lock que el trabajo solo esté UBICADO en un país o sea de una
   empresa de Latam/España (ej. "Colombia", "México", "remoto LATAM"): esos roles remotos casi
   siempre aceptan a toda Latinoamérica → NO descartes por una ubicación hispana/Latam sin
-  requisito EXPLÍCITO de residencia.
-- Presencial o híbrida (requiere presencia física / ir a oficina).
+  requisito EXPLÍCITO de residencia. ⚠️ PERO esto vale SOLO para roles 100% REMOTOS: si el rol es
+  HÍBRIDO o PRESENCIAL en esa ubicación Latam, SÍ se descarta (por presencial). La ubicación Latam
+  perdona el country-lock, NO la presencialidad.
+- PRESENCIAL O HÍBRIDA = DESCARTÁ SIEMPRE (regla dura, en CUALQUIER país): "presencial",
+  "híbrido"/"hybrid", "on-site"/"onsite", "X días en oficina", o "debe residir cerca de [ciudad]"
+  exigen presencia física que Hector NO puede dar — ni en Guatemala ni en otro país (Costa Rica,
+  México, etc.). ⚠️ Que la ubicación sea Latam NO lo salva: un híbrido/presencial en Heredia o
+  Monterrey IGUAL se descarta. SOLO sirve 100% REMOTO real.
 - Empresas/pools vetados: DataAnnotation, Mercor, TELUS International, Appen, CrowdGen,
   Lionbridge, Remotasks, Outlier (como empleador), 20four7VA, Concentrix, TaskUs, Arise.
 - Requiere skills que Hector NO tiene y no se aprenden rápido: ingeniería de software senior,
@@ -85,7 +93,10 @@ country-lock explícito NO, estafa NO, empresas vetadas NO.
 Regla de oro: ante la duda sobre INGLÉS HABLADO o PRESENCIAL → DESCARTÁ. Pero sobre UBICACIÓN →
 descartá SOLO si exige EXPLÍCITAMENTE residir en EE.UU./Canadá/UK/Europa; si es remoto y la
 ubicación es Latam/hispana o no la especifica, ACEPTÁ (a Hector le sirve). Ante la duda sobre el
-FIT cuando toca uno de sus nichos, ACEPTÁ.
+FIT cuando toca uno de sus nichos, ACEPTÁ. ⚠️ PERO un título de IA/automatización/data NO alcanza
+para aceptar: PRIMERO verificá los dealbreakers (100% remoto y NO híbrido/presencial; NO exige
+inglés HABLADO; NO es ingeniería de software SENIOR). Si falla aunque sea uno, DESCARTÁ — aunque el
+tema sea de su nicho (ej. "AI Engineer híbrido en México" = DESCARTAR).
 
 Leé la descripción COMPLETA antes de decidir (no te quedes solo con el título).
 Respondé SOLO con UNA línea de JSON válido — sin texto antes ni después, sin markdown, sin
