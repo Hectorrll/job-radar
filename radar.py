@@ -122,6 +122,10 @@ def main():
         for (v, ver), prof in zip(aceptadas, profundos):
             if prof and prof.get("motivo"):
                 n_prof += 1
+                # Log comparativo: screening (Maverick) vs lectura profunda (thinking)
+                print(f"#   [PROFUNDO] {v['fuente']}: {v['titulo'][:38]}")
+                print(f"#       screening (Maverick): {ver['motivo'][:110]}")
+                print(f"#       profundo  (Kimi):     [{'ACEPTA' if prof['aceptar'] else 'DUDA'}] {prof['motivo'][:110]}")
                 # Opcion A: nunca filtra. Si el thinking duda, se manda igual con la nota.
                 motivo = ("🧠 " + prof["motivo"]) if prof["aceptar"] else ("🧠⚠️ 2da opinion DUDA: " + prof["motivo"])
             else:
