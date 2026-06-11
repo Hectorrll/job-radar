@@ -298,6 +298,53 @@ def fetch_arbeitnow():
     return jobs
 
 
+def fetch_workingnomads():
+    """Working Nomads: jobs remotos globales, API JSON gratis."""
+    data = _get_json("https://www.workingnomads.com/api/exposed_jobs/")
+    if not isinstance(data, list):
+        return []
+    jobs = []
+    for j in data:
+        url = j.get("url", "") or ""
+        slug = url.rstrip("/").split("/")[-1] or (j.get("title", "") or "")
+        jobs.append({
+            "id": f"workingnomads-{slug}",
+            "titulo": j.get("title", "") or "",
+            "empresa": j.get("company_name", "") or "",
+            "ubicacion": j.get("location", "") or "Remoto",
+            "descripcion": _limpiar(j.get("description", ""))[:MAX_DESC],
+            "link": url,
+            "fuente": "Working Nomads",
+        })
+    return jobs
+
+
+def fetch_n8n_community():
+    """n8n Community Jobs (Discourse JSON). NICHO EXACTO de Hector: gigs de n8n/automatizacion/IA.
+    Salta los posts fijados (pinned, ej. 'About the category'). El body no viene en el listado."""
+    data = _get_json("https://community.n8n.io/c/jobs/13.json")
+    if not isinstance(data, dict):
+        return []
+    jobs = []
+    for t in ((data.get("topic_list", {}) or {}).get("topics", []) or []):
+        if t.get("pinned") or not t.get("id"):
+            continue
+        titulo = t.get("title", "") or ""
+        if not titulo:
+            continue
+        jobs.append({
+            "id": f"n8n-{t.get('id')}",
+            "titulo": titulo,
+            "empresa": "",
+            "ubicacion": "Remoto",
+            "descripcion": titulo[:MAX_DESC],  # el listado no trae el cuerpo
+            "link": f"https://community.n8n.io/t/{t.get('slug', '')}/{t.get('id')}",
+            "fuente": "n8n Community",
+        })
+    return jobs
+
+
 # Cada fetcher = un "agente de busqueda". Se corren en paralelo desde radar.py
 PORTALES = [fetch_remoteok, fetch_getonbrd, fetch_jobicy, fetch_himalayas, fetch_weworkremotely,
-            fetch_workana, fetch_linkedin, fetch_remotive, fetch_arbeitnow]
+            fetch_workana, fetch_linkedin, fetch_remotive, fetch_arbeitnow,
+            fetch_workingnomads, fetch_n8n_community]
