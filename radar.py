@@ -20,6 +20,10 @@ MAX_EVALUAR = int(os.getenv("RADAR_MAX_EVALUAR", "400"))
 # Hilos de evaluacion en paralelo. El limitador de ritmo (evaluar.py) es el guard real del
 # rate; estos hilos solo mantienen lleno el pipeline para exprimir la API al maximo (~40 RPM).
 EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "8"))
+# RESCATE de falsos negativos (Nivel 2): cuantos rechazos DE NICHO re-lee el thinking para cazar
+# matches que el screener (Maverick) tumbo por error (ej. confundir no-code/System.io con dev
+# senior). Capado para no disparar el rate de los thinking. Solo aplica si hay keys think (5/6).
+RESCATE_MAX = int(os.getenv("RADAR_RESCATE_MAX", "30"))
 
 # Pre-filtro barato por palabras clave: descarta lo obviamente irrelevante ANTES
 # de gastar llamadas de IA. Solo lo que pase esto se evalua con Qwen3.5.
@@ -60,6 +64,29 @@ def es_relevante(v):
     return any(k in texto for k in KEYWORDS)
 
 
+# Nichos FUERTES de Hector (automatizacion/IA/data): para priorizar Y para el rescate de falsos
+# negativos (donde el screener mas se equivoca, ej. confundir no-code con dev senior).
+NICHO = ["n8n", "automation", "automatiz", "ai agent", "agente", "prompt", "workflow",
+         "make.com", "zapier", "no-code", "low-code", "integration", "integraci",
+         "annotation", "anotaci", "etiquet", "data label", "ai data", "ai content", "llm", "rlhf"]
+
+
+def es_nicho(v):
+    t = (v["titulo"] + " " + v["descripcion"]).lower()
+    return any(k in t for k in NICHO)
+
+
+def _mensaje(v, motivo):
+    return (
+        f"✅ <b>{html.escape(v['titulo'])}</b>\n"
+        f"🏢 {html.escape(v['empresa'] or '—')}\n"
+        f"📍 {html.escape(v['ubicacion'])}\n"
+        f"🔎 {html.escape(v['fuente'])}\n"
+        f"💡 {html.escape(motivo)}\n"
+        f"🔗 {html.escape(v['link'])}"
+    )
+
+
 def main():
     seen = cargar_seen()
     _kf = len(evaluar.KEYS_FAST)
@@ -89,19 +116,15 @@ def main():
             _k.add(clave)
             _dedup.append(v)
     nuevas = _dedup
-    nicho = ["n8n", "automation", "automatiz", "ai agent", "agente", "prompt",
-             "workflow", "make.com", "zapier", "no-code", "low-code"]
-
     def _prioridad(v):
-        t = (v["titulo"] + " " + v["descripcion"]).lower()
-        return (0 if any(k in t for k in nicho) else 1, 0 if v["fuente"] == "GetOnBrd" else 1)
+        return (0 if es_nicho(v) else 1, 0 if v["fuente"] == "GetOnBrd" else 1)
 
     nuevas.sort(key=_prioridad)  # primero las de tu nicho fuerte (automatizacion/IA), luego espanol
     print(f"# {len(nuevas)} nuevas relevantes (evaluare hasta {MAX_EVALUAR})")
     a_evaluar = nuevas[:MAX_EVALUAR]
 
-    # 3) EVALUAR con IA EN PARALELO (varios "agentes evaluadores", 1 sola API key).
-    aceptadas = []
+    # 3) NIVEL 1: screening con Maverick EN PARALELO -> aceptados + rechazados.
+    aceptadas, rechazadas = [], []
     if a_evaluar:
         with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as ex:
             veredictos = list(ex.map(evaluar.evaluar_vacante, a_evaluar))
@@ -109,41 +132,49 @@ def main():
             estado = "ACEPTA" if ver["aceptar"] else "descarta"
             print(f"# [{estado}] {v['fuente']}: {v['titulo'][:45]} -> {ver['motivo'][:70]}")
             seen.add(v["id"])  # marcar como visto (se haya aceptado o no)
-            if ver["aceptar"]:
-                aceptadas.append((v, ver))
+            (aceptadas if ver["aceptar"] else rechazadas).append((v, ver))
 
-    # 4) NIVEL 2 (lectura PROFUNDA thinking de los ACEPTADOS) + NOTIFICAR a Telegram.
-    if aceptadas:
-        profundos = [None] * len(aceptadas)
-        if evaluar.tiene_think():
-            with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as ex:
-                profundos = list(ex.map(lambda par: evaluar.evaluar_profundo(par[0]), aceptadas))
-        n_prof = 0
-        for (v, ver), prof in zip(aceptadas, profundos):
+    # 4) NIVEL 2 (thinking, si hay keys 5/6): (a) lectura PROFUNDA de los aceptados (enriquece /
+    #    2da opinion, Opcion A: NUNCA filtra); (b) RESCATE de falsos negativos: re-lee los rechazos
+    #    DE NICHO -> si el thinking los ACEPTA, los rescata (Maverick los tumbo por error, ej. System.io).
+    enviar = []   # lista de (v, motivo_final) a mandar a Telegram
+    if not evaluar.tiene_think():
+        enviar = [(v, ver["motivo"]) for v, ver in aceptadas]
+    else:
+        rescatables = [par for par in rechazadas if es_nicho(par[0])][:RESCATE_MAX]
+        with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as ex:
+            prof_acc = list(ex.map(lambda par: evaluar.evaluar_profundo(par[0]), aceptadas))
+            prof_res = list(ex.map(lambda par: evaluar.evaluar_profundo(par[0]), rescatables))
+        # (a) aceptados -> enriquecer con la lectura profunda
+        for (v, ver), prof in zip(aceptadas, prof_acc):
             if prof and prof.get("motivo"):
-                n_prof += 1
-                # Log comparativo: screening (Maverick) vs lectura profunda (thinking)
                 print(f"#   [PROFUNDO] {v['fuente']}: {v['titulo'][:38]}")
                 print(f"#       screening (Maverick): {ver['motivo'][:110]}")
                 print(f"#       profundo  (Kimi):     [{'ACEPTA' if prof['aceptar'] else 'DUDA'}] {prof['motivo'][:110]}")
-                # Opcion A: nunca filtra. Si el thinking duda, se manda igual con la nota.
                 motivo = ("🧠 " + prof["motivo"]) if prof["aceptar"] else ("🧠⚠️ 2da opinion DUDA: " + prof["motivo"])
             else:
                 motivo = ver["motivo"]
-            msg = (
-                f"✅ <b>{html.escape(v['titulo'])}</b>\n"
-                f"🏢 {html.escape(v['empresa'] or '—')}\n"
-                f"📍 {html.escape(v['ubicacion'])}\n"
-                f"🔎 {html.escape(v['fuente'])}\n"
-                f"💡 {html.escape(motivo)}\n"
-                f"🔗 {html.escape(v['link'])}"
-            )
-            notificar.enviar(msg)
-        print(f"# {len(aceptadas)} vacantes enviadas a Telegram ({n_prof} con lectura profunda)")
+            enviar.append((v, motivo))
+        # (b) rescate de falsos negativos de nicho
+        n_resc = 0
+        for (v, ver), prof in zip(rescatables, prof_res):
+            if prof and prof.get("aceptar"):   # Kimi RESCATA lo que Maverick tumbo mal
+                n_resc += 1
+                print(f"#   [RESCATE] {v['fuente']}: {v['titulo'][:38]}")
+                print(f"#       Maverick descarto: {ver['motivo'][:95]}")
+                print(f"#       Kimi RESCATA:      {prof['motivo'][:95]}")
+                enviar.append((v, "🧠🆘 RESCATADO (Maverick lo habia descartado): " + prof["motivo"]))
+        print(f"# Nivel 2: {len(aceptadas)} aceptados re-leidos | rescate: {n_resc}/{len(rescatables)} rechazos de nicho recuperados")
+
+    # 5) NOTIFICAR a Telegram.
+    if enviar:
+        for v, motivo in enviar:
+            notificar.enviar(_mensaje(v, motivo))
+        print(f"# {len(enviar)} vacantes enviadas a Telegram")
     else:
         print(f"# 0 matches esta corrida (revise {len(a_evaluar)}) - sin aviso a Telegram (evita ruido)")
 
-    # 5) GUARDAR vistos (el workflow lo commitea al repo).
+    # 6) GUARDAR vistos (el workflow lo commitea al repo).
     guardar_seen(seen)
     print("# listo")
 
