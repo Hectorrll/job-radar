@@ -1,0 +1,43 @@
+name: Reenviar TODOS (un solo uso)
+# Disparo MANUAL de UN SOLO USO. Reenvia a Telegram TODOS los matches ignorando seen.json SOLO
+# en esta corrida, para que Hector revise/aplique a todos (incluidos los que ya vio).
+# SEGURIDAD (blindado):
+#   - permissions: contents: read  -> el token NO puede escribir/commitear: IMPOSIBLE que toque el
+#     seen.json del repo. El historial anti-duplicados queda INTACTO.
+#   - vacia seen.json SOLO en el runner efimero (no se commitea).
+#   - NO tiene paso de commit. Corre los agentes TAL CUAL estan (radar.py/criterios/evaluar sin cambios).
+#   - workflow_dispatch only -> nunca corre solo.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read        # solo lectura -> no puede modificar el repo (ni el seen.json)
+
+concurrency:
+  group: job-radar       # no solaparse con la corrida automatica del radar
+  cancel-in-progress: false
+
+jobs:
+  resend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Vaciar seen SOLO en el runner (NO se commitea)
+        run: echo "[]" > seen.json
+      - name: Reenviar TODOS los matches (agentes tal cual)
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_API_KEY_2: ${{ secrets.NVIDIA_API_KEY_2 }}
+          NVIDIA_API_KEY_3: ${{ secrets.NVIDIA_API_KEY_3 }}
+          NVIDIA_API_KEY_4: ${{ secrets.NVIDIA_API_KEY_4 }}
+          NVIDIA_API_KEY_5: ${{ secrets.NVIDIA_API_KEY_5 }}
+          NVIDIA_API_KEY_6: ${{ secrets.NVIDIA_API_KEY_6 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python radar.py
+      # SIN paso de commit a proposito: el seen.json del repo NO se toca.
