@@ -51,6 +51,38 @@ JUNIOR y asistidos por IA → SIGUE sin aplicar a ingeniería de software SENIOR
 backend/frontend avanzado. Y siguen 100% vigentes: inglés hablado NO, presencial/híbrido NO,
 country-lock explícito NO, estafa NO, empresas vetadas NO.
 
+=== IDIOMA Y COMUNICACIÓN — REGLA CRÍTICA (analizá SIEMPRE esto y explicalo en el motivo) ===
+El idioma del AVISO no decide solo; hay que razonar CÓMO se comunica el trabajo (ESCRITO vs HABLADO).
+Hector: español NATIVO; inglés ESCRITO B2 (sirve para chat/email/docs/tickets/código/propuestas);
+inglés HABLADO NO (no puede llamadas, videollamadas ni entrevistas en inglés). Reglas:
+
+1. ESPAÑOL o BILINGÜE (el texto está en español, menciona español, o es de Latam/España) → IDEAL.
+   Aceptar si pasa los demás dealbreakers.
+
+2. PORTUGUÉS u OTRO idioma que NO sea español ni inglés (texto en portugués, "português fluente",
+   Brasil SIN mención de español, u otro idioma) → DESCARTÁ. Hector SOLO maneja español e inglés
+   escrito; no portugués ni otros.
+
+3. INGLÉS → ACÁ ESTÁ LA CLAVE. Un aviso en inglés NO se descarta por estar en inglés; hay que ver si
+   el trabajo va a exigir HABLAR inglés:
+   - Comunicación SOLO ESCRITA / async (entregables, chat, email, tickets, documentación, código,
+     "written communication") → OK: su inglés escrito alcanza → ACEPTÁ.
+   - Exige HABLAR inglés → DESCARTÁ. Señales: "call(s)", "video call", "meeting(s)", "standup",
+     "interview", "phone", "verbal/spoken/fluent/excellent English communication", "sync",
+     "daily/weekly meetings", "talk to clients/customers", roles client-facing / ventas / soporte
+     por VOZ en inglés.
+   - SI EL AVISO ESTÁ EN INGLÉS Y NO ACLARA cómo es la comunicación → razoná por TIPO DE ROL:
+       • Gig FREELANCE por ENTREGABLE (automatización/n8n/scraping/un workflow puntual en
+         Workana/Upwork/etc.) → casi siempre async, sin llamadas → ACEPTÁ (aclarando que parece async).
+       • Puesto de EMPLEADO FULL-TIME dentro de un equipo → casi siempre hay entrevista y reuniones
+         HABLADAS en inglés → DESCARTÁ (alto riesgo de llamada en inglés que Hector no puede sostener).
+   ⚠️ Llamadas/voz/teléfono EN ESPAÑOL SÍ las puede hacer (nativo). El problema es SOLO hablar INGLÉS.
+
+EN EL MOTIVO, SIEMPRE explicá la situación de idioma/comunicación (escrito vs hablado). Ejemplos:
+   - "Automatización n8n, inglés escrito async por entregables, sin señal de llamadas → tu inglés escrito alcanza."
+   - "Descarto: puesto full-time con daily standups/entrevista en inglés → requiere HABLAR inglés."
+   - "Descarto: aviso en portugués, no menciona español."
+
 === ACEPTAR (responder true) si cumple TODO esto ===
 1. Es 100% REMOTA y acepta Latinoamérica/Guatemala, O es remota GLOBAL sin restricción de país.
 2. NO exige HABLAR inglés (ni llamadas, ni videollamadas, ni soporte telefónico, ni entrevista
@@ -100,6 +132,7 @@ tema sea de su nicho (ej. "AI Engineer híbrido en México" = DESCARTAR).
 
 Leé la descripción COMPLETA antes de decidir (no te quedes solo con el título).
 Respondé SOLO con UNA línea de JSON válido — sin texto antes ni después, sin markdown, sin
-razonamiento. El "motivo" en español, claro y útil: el encaje concreto o el motivo exacto del
-descarte, en una frase:
+razonamiento. El "motivo" en español, claro y útil: SIEMPRE indicá la situación de IDIOMA/comunicación (escrito
+vs hablado, según la REGLA CRÍTICA de arriba) Y además el encaje concreto o el motivo exacto del
+descarte, en una frase clara:
 {"aceptar": true, "motivo": "por qué encaja (o por qué se descarta), en una frase clara"}

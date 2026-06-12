@@ -5,22 +5,26 @@ manda solo si Maverick ACEPTA y el thinking (Kimi) NO lo filtra."""
 import evaluar
 
 CASOS = [
-    {"esperado": "RECHAZAR", "titulo": "Agentic AI Engineer", "empresa": "Flat Rock Technology",
-     "ubicacion": "Heredia, Costa Rica", "fuente": "LinkedIn",
-     "descripcion": "Agentic AI Engineer to join our team in Heredia, Costa Rica. This is a "
-     "HYBRID role requiring 3 days per week on-site at our Heredia office. Build AI agents."},
-    {"esperado": "RECHAZAR", "titulo": "Generative AI Engineer", "empresa": "Kuona",
-     "ubicacion": "Monterrey, Nuevo Leon, Mexico", "fuente": "LinkedIn",
-     "descripcion": "Senior Generative AI Engineer, on-site/hybrid in Monterrey, Mexico. 5+ years "
-     "of software engineering, strong backend and ML systems experience required."},
+    {"esperado": "RECHAZAR", "titulo": "Desenvolvedor de automacao n8n", "empresa": "TechBR",
+     "ubicacion": "Brasil", "fuente": "Workana",
+     "descripcion": "Procuramos um desenvolvedor de automacao com n8n para integrar APIs e construir "
+     "fluxos de trabalho. Trabalho 100% remoto. Necessario portugues fluente. (idioma: portugues)"},
+    {"esperado": "RECHAZAR", "titulo": "Automation Engineer (Full-time)", "empresa": "GlobalCorp",
+     "ubicacion": "Remote", "fuente": "RemoteOK",
+     "descripcion": "Full-time remote Automation Engineer. You will join daily standups, weekly team "
+     "meetings and a video interview process. Excellent verbal English communication required."},
+    {"esperado": "ACEPTAR", "titulo": "n8n workflow build (one-time gig)", "empresa": "SoloFounder",
+     "ubicacion": "Remote", "fuente": "Upwork",
+     "descripcion": "I need someone to build one n8n workflow that syncs a form to a spreadsheet and "
+     "sends an email. Deliverable-based, fully async, communication over chat/written only. No calls."},
+    {"esperado": "RECHAZAR", "titulo": "English Content Writer / Copywriter", "empresa": "BlogCo",
+     "ubicacion": "Remote", "fuente": "WeWorkRemotely",
+     "descripcion": "Native English content writer to produce high-quality blog articles and "
+     "marketing copy in flawless, native-level English. Native English speakers only."},
     {"esperado": "ACEPTAR", "titulo": "Especialista en Automatizacion n8n (100% remoto)",
      "empresa": "Acme Latam", "ubicacion": "Remoto - LATAM", "fuente": "Workana",
      "descripcion": "Buscamos especialista en automatizacion con n8n para integrar APIs y construir "
      "workflows. 100% REMOTO, async, abierto a toda Latinoamerica. Trabajo en espanol."},
-    {"esperado": "ACEPTAR", "titulo": "Soporte al Cliente bilingue (remoto)", "empresa": "HelpCo",
-     "ubicacion": "Remoto", "fuente": "RemoteOK",
-     "descripcion": "Atencion al cliente 100% REMOTA: chat, email y LLAMADAS EN ESPANOL. Ingles "
-     "solo ESCRITO para documentacion. NO se requiere hablar ingles."},
 ]
 
 
