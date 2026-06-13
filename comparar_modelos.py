@@ -22,9 +22,10 @@ with open("criterios.txt", encoding="utf-8") as f:
 
 # Modelos a probar (palabra clave -> se resuelve el ID exacto del catalogo).
 TARGETS = [
-    "glm-5.1", "deepseek-v4-pro", "kimi-k2.6", "deepseek-v4-flash",
-    "nemotron-3-ultra", "minimax-m2.7", "mistral-medium-3.5",
-    "llama-4-maverick",  # referencia: el campeon RAPIDO actual del radar
+    "minimax-m3",        # NUEVO en NVIDIA - lo que queremos probar vs los thinking
+    "kimi-k2.6",         # Nivel 2 actual (primario thinking)
+    "deepseek-v4-pro",   # Nivel 2 actual (fallback thinking)
+    "llama-4-maverick",  # referencia: el screener RAPIDO actual del radar
 ]
 
 # Por si /v1/models falla o no matchea: IDs de respaldo (best-guess).
@@ -35,6 +36,7 @@ FALLBACK_IDS = {
     "deepseek-v4-flash": "deepseek-ai/deepseek-v4-flash",
     "nemotron-3-ultra": "nvidia/nemotron-3-ultra-550b-a55b",
     "minimax-m2.7": "minimaxai/minimax-m2.7",
+    "minimax-m3": "minimaxai/minimax-m3",
     "mistral-medium-3.5": "mistralai/mistral-medium-3.5-128b",
     "llama-4-maverick": "meta/llama-4-maverick-17b-128e-instruct",
 }
@@ -117,6 +119,8 @@ def evaluar_con(modelo, v):
 def main():
     resolved, ids = resolver_ids()
     print(f"# Catalogo NVIDIA: {len(ids)} modelos disponibles")
+    _mm = [i for i in ids if "minimax" in i.lower()]
+    print(f"# Modelos MiniMax en el catalogo: {_mm or 'NINGUNO'}")
     print("# IDs resueltos:")
     for t, mid in resolved.items():
         print(f"#   {t:20} -> {mid or 'NO ENCONTRADO'}")
@@ -130,7 +134,7 @@ def main():
         aciertos, jsons, lats, dificiles = 0, 0, [], ""
         for i, g in enumerate(GOLDEN):
             res = evaluar_con(modelo, g)
-            time.sleep(1.6)  # respetar ~40 RPM (1 llamada cada 1.6s)
+            time.sleep(2.5)  # ritmo bajo (~24 RPM) como el deep pass del radar: test de CALIDAD limpio, evita 429 falsos en los thinking
             lats.append(res["lat"])
             jsons += 1 if res["json_ok"] else 0
             correcto = res["ok"] and res["json_ok"] and (res["verdict"] == g["esperado"])
