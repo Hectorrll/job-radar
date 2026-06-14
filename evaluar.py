@@ -3,7 +3,7 @@
 NIVEL 1 (screening, rapido y confiable): Llama 4 Maverick en el pool "fast" (NVIDIA_API_KEY
 [+ _2 .. _4]), ~38 RPM por key. Evalua TODAS las vacantes -> acepta/descarta. Fallback Llama 3.3 70B.
 
-NIVEL 2 (lectura PROFUNDA, opcional): Kimi K2.6 (fallback DeepSeek V4 Pro) en el pool "think"
+NIVEL 2 (lectura PROFUNDA, opcional): Kimi K2.6 (fallback MiniMax M3) en el pool "think"
 (NVIDIA_API_KEY_5 [+ _6], dedicado). SOLO re-juzga los matches que el Nivel 1 ACEPTO -> da un
 motivo mas profundo / 2da opinion. Throttle BAJO (RADAR_THINK_INTERVAL) para no gatillar 429 en
 los modelos pesados. Si NO hay keys 5/6, el Nivel 2 se omite (el radar funciona igual con Nivel 1).
@@ -34,9 +34,11 @@ URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 # Nivel 1 (screener): rapido y confiable a escala.
 MODEL = os.getenv("RADAR_MODEL", "meta/llama-4-maverick-17b-128e-instruct")
 FALLBACK_MODEL = "meta/llama-3.3-70b-instruct"
-# Nivel 2 (juez profundo): los mejores thinking del eval (Kimi 10/10, DeepSeek 10/10).
+# Nivel 2 (juez profundo): Kimi K2.6 primario (10/10 + rápido + confiable en el eval golden-set).
+# Fallback = MiniMax M3 (9/10, razona excelente): reemplazó a DeepSeek V4 Pro, que quedó roto/flaky
+# en NVIDIA (1/10, timeouts de conexión) — verificado 2026-06-13 con comparar_modelos.py.
 THINK_MODEL = os.getenv("RADAR_THINK_MODEL", "moonshotai/kimi-k2.6")
-THINK_FALLBACK = "deepseek-ai/deepseek-v4-pro"
+THINK_FALLBACK = os.getenv("RADAR_THINK_FALLBACK", "minimaxai/minimax-m3")
 
 REQ_TIMEOUT = int(os.getenv("RADAR_REQ_TIMEOUT", "60"))
 MAX_TOKENS = 350
