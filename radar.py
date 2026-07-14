@@ -13,6 +13,8 @@ import evaluar
 import notificar
 
 SEEN_FILE = pathlib.Path("seen.json")
+# Puente hacia Apply Engine (fellowship-radar): matches de esta corrida, sin tocar seen.json.
+TOP_MATCHES_FILE = pathlib.Path(os.getenv("RADAR_TOP_MATCHES_FILE", "top_matches.json"))
 # Cuantas vacantes NUEVAS evaluar por corrida. 400 aprovecha el TRIPLE presupuesto de 3 keys
 # NVIDIA (~114 RPM). Tras el dedup casi nunca hay tantas nuevas; el tope solo aplica en corridas
 # frias/grandes. Seguro: evaluar.py limita el ritmo POR KEY por debajo de 40 RPM (no rompe NVIDIA).
@@ -26,7 +28,7 @@ EVAL_WORKERS = int(os.getenv("RADAR_EVAL_WORKERS", "8"))
 RESCATE_MAX = int(os.getenv("RADAR_RESCATE_MAX", "30"))
 
 # Pre-filtro barato por palabras clave: descarta lo obviamente irrelevante ANTES
-# de gastar llamadas de IA. Solo lo que pase esto se evalua con Qwen3.5.
+# de gastar llamadas de IA. Solo lo que pase esto se evalua con Maverick (Nivel 1).
 KEYWORDS = [
     # automatizacion / IA (nicho fuerte)
     "n8n", "make.com", "zapier", "automation", "automatizaci", "workflow",
@@ -63,6 +65,31 @@ def guardar_seen(seen):
     SEEN_FILE.write_text(json.dumps(sorted(seen), ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def guardar_top_matches(enviar):
+    """Escribe matches de ESTA corrida para export a Apply Engine (fellowship-radar).
+    No altera el filtro ni Telegram: solo un JSON paralelo. Score fijo 9 = ya paso L1/L2.
+    """
+    rows = []
+    for v, motivo in enviar:
+        rows.append({
+            "id": v.get("id", ""),
+            "titulo": v.get("titulo", ""),
+            "empresa": v.get("empresa", ""),
+            "ubicacion": v.get("ubicacion", ""),
+            "url": v.get("link", ""),
+            "link": v.get("link", ""),
+            "descripcion": (v.get("descripcion") or "")[:4000],
+            "fuente": v.get("fuente", ""),
+            "motivo": motivo,
+            "score": 9,
+            "prioridad": "TOP",
+        })
+    TOP_MATCHES_FILE.write_text(
+        json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"# top_matches.json: {len(rows)} fila(s) -> Apply Engine export")
+
+
 def es_relevante(v):
     texto = (v["titulo"] + " " + v["descripcion"]).lower()
     return any(k in texto for k in KEYWORDS)
@@ -78,6 +105,35 @@ NICHO = ["n8n", "automation", "automatiz", "ai agent", "agente", "prompt", "work
 def es_nicho(v):
     t = (v["titulo"] + " " + v["descripcion"]).lower()
     return any(k in t for k in NICHO)
+
+
+# Prefiltro inteligente: score mas alto = se evalua primero (mejor uso del cupo MAX_EVALUAR).
+FUENTE_BONUS = {"n8n Community": 3, "GetOnBrd": 3, "HN Who is Hiring": 2}
+VOZ_SIGNALS = [
+    "phone call", "video call", "fluent english", "verbal english", "spoken english",
+    "standup", "zoom interview", "daily meeting", "weekly meeting", "talk to clients",
+    "entrevista en ingl", "llamada", "videollamada", "english speaking",
+]
+SPANISH_SIGNALS = ["español", "espanol", "spanish", "latam", "latin america", "bilingüe", "bilingual"]
+WORKANA_LOW = ["asistente virtual", "data entry", "digitador", "mecanogra", "redactor de correos"]
+
+
+def score_vacante(v):
+    """Mayor score = mayor prioridad para evaluacion con IA."""
+    texto = (v["titulo"] + " " + v["descripcion"] + " " + v.get("ubicacion", "")).lower()
+    score = FUENTE_BONUS.get(v["fuente"], 0)
+    if es_nicho(v):
+        score += 2
+    if any(s in texto for s in SPANISH_SIGNALS):
+        score += 1
+    if v["fuente"] == "Workana":
+        if any(g in texto for g in WORKANA_LOW) and not es_nicho(v):
+            score -= 2
+        if "rating 0.00" in texto or ", rating 0" in texto:
+            score -= 1
+    if any(s in texto for s in VOZ_SIGNALS):
+        score -= 3
+    return score
 
 
 def _mensaje(v, motivo):
@@ -120,10 +176,10 @@ def main():
             _k.add(clave)
             _dedup.append(v)
     nuevas = _dedup
-    def _prioridad(v):
-        return (0 if es_nicho(v) else 1, 0 if v["fuente"] == "GetOnBrd" else 1)
-
-    nuevas.sort(key=_prioridad)  # primero las de tu nicho fuerte (automatizacion/IA), luego espanol
+    nuevas.sort(key=score_vacante, reverse=True)
+    if nuevas:
+        top = nuevas[0]
+        print(f"# prioridad top: score={score_vacante(top)} | {top['fuente']}: {top['titulo'][:50]}")
     print(f"# {len(nuevas)} nuevas relevantes (evaluare hasta {MAX_EVALUAR})")
     a_evaluar = nuevas[:MAX_EVALUAR]
 
@@ -187,6 +243,9 @@ def main():
         print(f"# {len(enviar)} vacantes enviadas a Telegram")
     else:
         print(f"# 0 matches esta corrida (revise {len(a_evaluar)}) - sin aviso a Telegram (evita ruido)")
+
+    # 5b) Puente Apply Engine: siempre escribir archivo (array vacio si no hay matches).
+    guardar_top_matches(enviar)
 
     # 6) GUARDAR vistos (el workflow lo commitea al repo).
     guardar_seen(seen)

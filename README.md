@@ -50,15 +50,15 @@ los usa para evaluar cientos de vacantes. La solución: **separar volumen de pro
 
 | | **Nivel 1 — Screening** | **Nivel 2 — Lectura profunda** |
 |---|---|---|
-| **Modelo** | Llama 4 Maverick (rápido, confiable a escala) | Kimi K2.6 → fallback DeepSeek V4 Pro (razonamiento) |
+| **Modelo** | Llama 4 Maverick (rápido, confiable a escala) | Kimi K2.6 → fallback MiniMax M3 (razonamiento) |
 | **Qué hace** | Evalúa **todas** las vacantes nuevas → acepta/descarta | Re-juzga los finalistas con análisis profundo |
 | **Recursos** | Pool de 4 API keys, ~152 req/min | Pool de 2 keys dedicadas, ritmo bajo (sin 429) |
 
 El Nivel 2 trabaja **en las dos direcciones**, corrigiendo los errores del screener rápido:
 
-- 🧠 **Enriquece** cada match aceptado con un razonamiento más detallado.
-- ⚠️ **Caza falsos positivos:** si el modelo profundo detecta un problema que el screener pasó por
-  alto (ej. "es presencial"), lo marca con una nota — sin descartarlo (la persona decide).
+- 🧠 **Enriquece** cada match aceptado con un razonamiento más detallado (y solo entonces se notifica).
+- ⚠️ **Filtra falsos positivos:** si el modelo profundo detecta un dealbreaker que el screener pasó
+  por alto (ej. híbrido/presencial, inglés hablado), **no se manda** a Telegram.
 - 🆘 **Rescata falsos negativos:** re-lee los rechazos *del nicho* y recupera los que el screener
   tumbó por error (ej. confundir una herramienta no-code con "desarrollo senior").
 
@@ -80,6 +80,12 @@ documentados.
 | **n8n Community** | Foro Discourse vía JSON — *nicho exacto: gigs de automatización* |
 | **Hacker News "Who is Hiring"** | Algolia Search API (thread mensual → posts de trabajo) |
 
+### Career Engine (empresas objetivo)
+
+Watcher complementario que monitorea vacantes en **Greenhouse, Lever y Ashby** de empresas
+configuradas en `career_targets.json`. Corre en workflow separado (`career-watcher.yml`, cron
+`:30`) con memoria propia (`seen-career.json`). Reutiliza el mismo pipeline de evaluación IA.
+
 > Cada fetcher **falla de forma segura** (si un portal cambia o cae, devuelve vacío y el radar
 > sigue). El log muestra el desglose por portal en cada corrida (observabilidad).
 
@@ -88,7 +94,7 @@ documentados.
 ## ⚙️ Decisiones de ingeniería destacadas
 
 - **Selección de modelo basada en evidencia.** Construí un *golden-set* de evaluación
-  (`comparar_modelos.py`) con vacantes de veredicto conocido para medir 8 LLMs. Kimi y DeepSeek
+  (`comparar_modelos.py`) con vacantes de veredicto conocido para medir 8 LLMs. Kimi y MiniMax M3
   ganaron en calidad (10/10) — **pero al validarlos a escala fallaban con 429 el ~79%.** Lección
   aplicada: *medir calidad con un set de prueba, pero validar el modelo en condiciones reales de
   volumen.* De ahí nació la arquitectura de dos niveles.
@@ -119,6 +125,11 @@ documentados.
 | `notificar.py` | Envío a Telegram (con manejo de rate limit) |
 | `criterios.txt` | Perfil/criterios de match configurables (prompt del evaluador) |
 | `seen.json` | Memoria de vacantes ya avisadas (anti-duplicados) |
+| `top_matches.json` | Matches de la última corrida (puente a Apply Engine; artifact GH, no se versiona) |
+| `career_radar.py` | Career Engine: watcher ATS (Greenhouse/Lever/Ashby) |
+| `career_portales.py` | Fetchers ATS para empresas objetivo |
+| `career_targets.json` | Lista de boards ATS a monitorear |
+| `seen-career.json` | Memoria separada del Career Engine |
 | `comparar_modelos.py` | Banco de pruebas: evalúa N modelos contra un golden-set |
 | `demo_thinking.py` | Demo: compara el razonamiento de screener vs modelos thinking |
 | `.github/workflows/` | Automatización: cron del radar + commit de memoria |

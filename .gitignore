@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+venv/
+.env
+.env.*
+
+# Local probes / scratch (no commitear)
+probe_output.txt
+upwork_*.txt
+upwork_top_hector.json
+top_matches.json
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/

@@ -41,6 +41,15 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python radar.py
 
+      # Artifact para Apply Engine (fellowship-radar). No se commitea: download manual → export_to_queue.py
+      - name: Subir top_matches (puente Apply)
+        uses: actions/upload-artifact@v4
+        with:
+          name: top-matches
+          path: top_matches.json
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Guardar vacantes ya vistas
         run: |
           git config user.name "job-radar-bot"
